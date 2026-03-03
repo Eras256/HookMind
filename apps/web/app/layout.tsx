@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import { Navbar } from "@/components/nav/Navbar";
 import { Footer } from "@/components/nav/Footer";
 import { NeuralCanvas } from "@/components/3d/NeuralCanvas";
+import { Toaster } from "sonner";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     {/* Glassmorphic Navbar */}
                     <Navbar />
                     {/* Page Content */}
-                    <main className="relative z-10 flex-grow">
+                    <main className="relative z-10 grow">
                         {children}
                     </main>
                     {/* Global Footer */}
                     <Footer />
+                    {/* Toast Notifications */}
+                    <Toaster
+                        position="bottom-right"
+                        theme="dark"
+                        toastOptions={{
+                            style: {
+                                background: "rgba(8,8,18,0.95)",
+                                border: "1px solid rgba(252,114,255,0.3)",
+                                color: "#fff",
+                                fontFamily: "JetBrains Mono, monospace",
+                                fontSize: "13px",
+                                borderRadius: "12px",
+                            },
+                        }}
+                    />
                 </Providers>
             </body>
         </html>

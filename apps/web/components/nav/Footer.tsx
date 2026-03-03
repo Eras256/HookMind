@@ -5,12 +5,12 @@ export function Footer() {
     return (
         <footer className="relative z-10 border-t border-white/10 bg-black/40 backdrop-blur-2xl mt-auto">
             <div className="max-w-7xl mx-auto px-6 py-12 lg:py-16">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-12">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-12">
                     {/* Brand & Description */}
-                    <div className="col-span-1 lg:col-span-2">
-                        <Link href="/" className="flex items-center gap-2 group mb-6 inline-flex">
+                    <div className="col-span-1 sm:col-span-2 lg:col-span-2 flex flex-col items-center md:items-start text-center md:text-left">
+                        <Link href="/" className="flex items-center gap-2 group mb-6">
                             <Brain className="w-8 h-8 text-[#06B6D4] group-hover:drop-shadow-[0_0_12px_#06B6D4] transition-all" />
-                            <span className="font-extrabold text-2xl tracking-tight text-white">
+                            <span className="font-extrabold text-2xl tracking-tight text-white italic">
                                 Hook<span className="text-[#06B6D4]">Mind</span>
                             </span>
                         </Link>
@@ -35,22 +35,20 @@ export function Footer() {
                         </div>
                     </div>
 
-                    {/* Quick Links */}
-                    <div className="flex flex-col">
+                    <div className="flex flex-col items-center md:items-start text-center md:text-left">
                         <h3 className="text-white font-semibold mb-6 flex items-center gap-2">
                             <Activity className="w-4 h-4 text-[#06B6D4]" />
                             Ecosystem
                         </h3>
                         <ul className="space-y-4 text-sm font-medium">
-                            <li><Link href="/" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all">Matrix</Link></li>
+                            <li><Link href="/" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all">Dashboard</Link></li>
                             <li><Link href="/agents" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all">Agent Network</Link></li>
                             <li><Link href="/pools" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all">Intelligence Pools</Link></li>
                             <li><Link href="/vault" className="text-gray-400 hover:text-white hover:translate-x-1 inline-block transition-all">Vault Integration</Link></li>
                         </ul>
                     </div>
 
-                    {/* Resources & Security */}
-                    <div className="flex flex-col">
+                    <div className="flex flex-col items-center md:items-start text-center md:text-left">
                         <h3 className="text-white font-semibold mb-6 flex items-center gap-2">
                             <ShieldCheck className="w-4 h-4 text-[#06B6D4]" />
                             Developers

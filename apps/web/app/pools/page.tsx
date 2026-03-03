@@ -1,109 +1,228 @@
-// @ts-nocheck
 "use client";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { TrendingUp, Layers, Cpu, AlertTriangle, X } from "lucide-react";
+import { toast } from "sonner";
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from "recharts";
 
-import { motion } from "framer-motion";
-import { Activity, Droplets, Zap, Filter, ArrowRight } from "lucide-react";
+// ── Mock pool analytics data ───────────────────────────────────────────────
+const generatePoolHistory = () =>
+    Array.from({ length: 24 }, (_, i) => ({
+        time: `${i}:00`,
+        fee: Math.floor(2000 + Math.random() * 7000),
+        vol: Math.floor(1000 + Math.random() * 8500),
+    }));
+
+const HOOK_POOLS = [
+    { pair: "WETH/USDC", t0: "⟠", t1: "💵", tvl: "$4.2M", vol24h: "$890K", currentFee: 7200, maxFee: 10000, status: "MONITORING", strategy: "Volatility Shield", ilRisk: 65, lastUpdate: "12s ago", agentEOA: "0xA3b4...F21c" },
+    { pair: "cbBTC/USDC", t0: "₿", t1: "💵", tvl: "$1.8M", vol24h: "$320K", currentFee: 3000, maxFee: 10000, status: "MONITORING", strategy: "Peg Keeper", ilRisk: 22, lastUpdate: "8s ago", agentEOA: "0xE7c2...09aB" },
+    { pair: "UNI/ETH", t0: "🦄", t1: "⟠", tvl: "$980K", vol24h: "$210K", currentFee: 10000, maxFee: 10000, status: "ALERT", strategy: "MEV Defender", ilRisk: 89, lastUpdate: "3s ago", agentEOA: "0x8f1D...4Cc3" },
+    { pair: "USDC/USDT", t0: "💵", t1: "💵", tvl: "$6.1M", vol24h: "$1.4M", currentFee: 500, maxFee: 10000, status: "MONITORING", strategy: "Peg Keeper", ilRisk: 4, lastUpdate: "15s ago", agentEOA: "0x3Dc1...A8f2" },
+];
+
+const SUMMARY_STATS = [
+    { label: "Total TVL Managed", value: "$13.1M", icon: TrendingUp },
+    { label: "Active Pools", value: "4", icon: Layers },
+    { label: "Weighted Avg Fee", value: "5,475 bps", icon: Cpu },
+    { label: "Agent Nodes Online", value: "3 / 3", icon: Cpu },
+];
+
+function ILBar({ pct }: { pct: number }) {
+    const color = pct > 70 ? "var(--color-neural-red)" : pct > 30 ? "var(--color-neural-gold)" : "var(--color-neural-green)";
+    return (
+        <div className="flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className="h-full rounded-full"
+                    style={{ background: color, boxShadow: `0 0 6px ${color}80` }}
+                />
+            </div>
+            <span className="text-xs font-mono" style={{ color }}>{pct}%</span>
+        </div>
+    );
+}
+
+function FeeBar({ fee, max }: { fee: number; max: number }) {
+    const pct = (fee / max) * 100;
+    const color = fee >= 8000 ? "var(--color-neural-red)" : fee <= 1000 ? "var(--color-neural-green)" : "var(--color-neural-cyan)";
+    return (
+        <div>
+            <span className="text-xs font-mono font-bold" style={{ color }}>{fee.toLocaleString()} bps</span>
+            <div className="flex h-1 mt-1 rounded-full bg-white/10 overflow-hidden">
+                <div className="rounded-full" style={{ width: `${pct}%`, background: color }} />
+            </div>
+        </div>
+    );
+}
 
 export default function PoolsPage() {
-    const pools = [
-        { name: "WETH / USDC", fee: "Dynamic AI", tvl: "$42.1M", volume24h: "$12.4M", status: "Active" },
-        { name: "WBTC / WETH", fee: "Dynamic AI", tvl: "$18.5M", volume24h: "$5.1M", status: "Active" },
-        { name: "UNI / WETH", fee: "Dynamic AI", tvl: "$8.9M", volume24h: "$2.2M", status: "Active" },
-        { name: "cbBTC / USDC", fee: "Dynamic AI", tvl: "$2.4M", volume24h: "$600K", status: "Active" },
-    ];
+    const [analyticsPool, setAnalyticsPool] = useState<typeof HOOK_POOLS[0] | null>(null);
+    const [analyticsData] = useState(() => generatePoolHistory());
 
     return (
-        <div className="pt-24 px-6 max-w-7xl mx-auto min-h-screen">
-            <div className="mb-12">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="inline-flex items-center gap-2 neon-badge mb-6"
-                >
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                    INTELLIGENCE
-                </motion.div>
-                <motion.h1
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-4xl md:text-5xl font-black tracking-tighter mb-4"
-                >
-                    Agent-Managed <span className="text-[#06B6D4] glow-text">Pools</span>
-                </motion.h1>
-                <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-gray-400 text-lg max-w-2xl"
-                >
-                    Monitor real-time liquidity pools controlled by HookMind's neural mesh. Fees are dynamically adjusted, protecting LPs natively in v4.
-                </motion.p>
+        <>
+            {/* Pool Analytics Modal */}
+            <AnimatePresence>
+                {analyticsPool && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setAnalyticsPool(null)}
+                            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-void/98 border border-neural-magenta/25 rounded-2xl p-7 backdrop-blur-[28px]"
+                        >
+                            <div className="flex justify-between items-center mb-6">
+                                <div>
+                                    <h3 className="text-xl font-black text-white">{analyticsPool.pair} — Fee Analytics</h3>
+                                    <p className="text-sm text-gray-500 font-mono mt-0.5">Last 24h · Unichain Sepolia</p>
+                                </div>
+                                <button onClick={() => setAnalyticsPool(null)} className="p-2 rounded-lg hover:bg-white/10 text-gray-500 hover:text-white transition-colors">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            <ResponsiveContainer width="100%" height={260}>
+                                <AreaChart data={analyticsData} margin={{ left: -20, right: 8 }}>
+                                    <defs>
+                                        <linearGradient id="gFee" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="var(--color-neural-cyan)" stopOpacity={0.3} />
+                                            <stop offset="100%" stopColor="var(--color-neural-cyan)" stopOpacity={0} />
+                                        </linearGradient>
+                                        <linearGradient id="gVol" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="var(--color-neural-magenta)" stopOpacity={0.3} />
+                                            <stop offset="100%" stopColor="var(--color-neural-magenta)" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+                                    <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="rgba(255,255,255,0.1)" tickLine={false} />
+                                    <YAxis stroke="rgba(255,255,255,0.1)" tickLine={false} tick={{ fontSize: 10 }} />
+                                    <Tooltip contentStyle={{ background: "rgba(10,10,18,0.95)", border: "1px solid rgba(252,114,255,0.3)", borderRadius: 10, fontSize: 11, fontFamily: "JetBrains Mono" }} />
+                                    <Legend wrapperStyle={{ fontSize: 11, fontFamily: "JetBrains Mono" }} />
+                                    <Area type="monotone" dataKey="fee" stroke="var(--color-neural-cyan)" fill="url(#gFee)" strokeWidth={2} name="Fee (bps)" />
+                                    <Area type="monotone" dataKey="vol" stroke="var(--color-neural-magenta)" fill="url(#gVol)" strokeWidth={2} name="Volatility Score" />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            <div className="pt-20 px-5 max-w-7xl mx-auto pb-16">
+                {/* Header */}
+                <div className="pt-8 mb-8">
+                    <div className="inline-flex items-center gap-2 neon-badge mb-4">
+                        <span className="w-1.5 h-1.5 rounded-full bg-neural-cyan animate-pulse" />
+                        HOOK POOLS · LIVE
+                    </div>
+                    <h1 className="text-3xl sm:text-5xl font-black tracking-tighter mb-2">
+                        Active{" "}
+                        <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-cyan to-neural-magenta">
+                            Hook Pools
+                        </span>
+                    </h1>
+                    <p className="text-gray-500">Uniswap v4 pools on Unichain managed by the HookMind AI mesh.</p>
+                </div>
+
+                {/* Summary Stats */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+                    {SUMMARY_STATS.map(({ label, value, icon: Icon }, i) => (
+                        <motion.div
+                            key={label}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.07 }}
+                            className="glass-card p-4 flex items-center gap-3"
+                        >
+                            <div className="p-2 rounded-lg bg-white/5">
+                                <Icon size={16} className="text-neural-magenta" />
+                            </div>
+                            <div>
+                                <div className="text-xl font-black font-mono text-white">{value}</div>
+                                <div className="text-[11px] text-gray-500 font-mono">{label}</div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+
+                {/* Pool Cards */}
+                <div className="space-y-3">
+                    {HOOK_POOLS.map((pool, i) => (
+                        <motion.div
+                            key={pool.pair}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.08 }}
+                            className="glass-card p-5"
+                        >
+                            <div className="grid grid-cols-2 md:grid-cols-7 gap-4 items-center">
+                                {/* Pair */}
+                                <div className="md:col-span-1">
+                                    <div className="text-2xl mb-0.5">{pool.t0}{pool.t1}</div>
+                                    <div className="font-black text-white">{pool.pair}</div>
+                                    <div className="text-[11px] text-gray-500 font-mono mt-0.5">{pool.agentEOA}</div>
+                                </div>
+
+                                {/* TVL / Vol */}
+                                <div className="md:col-span-1 text-center">
+                                    <div className="text-xs text-gray-500 font-mono uppercase">TVL</div>
+                                    <div className="font-bold text-white">{pool.tvl}</div>
+                                    <div className="text-xs text-gray-600">{pool.vol24h} 24h</div>
+                                </div>
+
+                                {/* Current Fee */}
+                                <div className="md:col-span-1">
+                                    <div className="text-xs text-gray-500 font-mono uppercase mb-1">Fee</div>
+                                    <FeeBar fee={pool.currentFee} max={pool.maxFee} />
+                                </div>
+
+                                {/* IL Risk */}
+                                <div className="md:col-span-2">
+                                    <div className="text-xs text-gray-500 font-mono uppercase mb-1">IL Risk</div>
+                                    <ILBar pct={pool.ilRisk} />
+                                </div>
+
+                                {/* Status + Strategy */}
+                                <div className="md:col-span-1 text-center py-2 md:py-0">
+                                    <span className={pool.status === "ALERT" ? "px-2 py-0.5 rounded text-[10px] md:text-xs font-mono font-bold text-neural-red bg-neural-red/10 border border-neural-red/30 uppercase animate-pulse inline-block" : "status-running inline-block"}>
+                                        {pool.status}
+                                    </span>
+                                    <div className="text-[10px] md:text-[11px] text-gray-500 font-mono mt-1">{pool.strategy}</div>
+                                    <div className="text-[9px] md:text-[10px] text-gray-700 font-mono">{pool.lastUpdate}</div>
+                                </div>
+
+                                {/* Actions */}
+                                <div className="md:col-span-1 flex gap-2 justify-end">
+                                    <motion.button
+                                        whileHover={{ scale: 1.04 }}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => setAnalyticsPool(pool)}
+                                        className="btn-ghost text-xs px-3 py-2 rounded-lg"
+                                    >
+                                        Analytics ↗
+                                    </motion.button>
+                                    <motion.button
+                                        whileHover={{ scale: 1.04 }}
+                                        whileTap={{ scale: 0.97 }}
+                                        onClick={() => toast.loading(`Switching ${pool.pair} strategy...`, { id: pool.pair })}
+                                        className="btn-ghost text-xs px-3 py-2 rounded-lg"
+                                    >
+                                        Strategy
+                                    </motion.button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
             </div>
-
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="glass-card overflow-hidden"
-            >
-                <div className="p-6 border-b border-white/5 flex items-center justify-between">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <Droplets className="w-5 h-5 text-[#06B6D4]" />
-                        Active Pairs
-                    </h2>
-                    <button className="flex items-center gap-2 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer">
-                        <Filter className="w-4 h-4" />
-                        Filter
-                    </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="text-xs uppercase tracking-wider text-gray-500 bg-black/40">
-                                <th className="p-4 font-medium">Pool</th>
-                                <th className="p-4 font-medium">Fee Strategy</th>
-                                <th className="p-4 font-medium">TVL</th>
-                                <th className="p-4 font-medium">24h Vol</th>
-                                <th className="p-4 font-medium">Network Status</th>
-                                <th className="p-4 font-medium text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {pools.map((pool, idx) => (
-                                <tr key={idx} className="hover:bg-white/[0.02] transition-colors group">
-                                    <td className="p-4 font-medium text-white flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 border border-white/10">
-                                            <Droplets className="w-4 h-4 text-gray-400 group-hover:text-[#06B6D4] transition-colors" />
-                                        </div>
-                                        {pool.name}
-                                    </td>
-                                    <td className="p-4">
-                                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[rgba(6,182,212,0.1)] text-[#06B6D4] text-xs font-semibold border border-[rgba(6,182,212,0.2)]">
-                                            <Zap className="w-3 h-3" />
-                                            {pool.fee}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-gray-300 font-mono text-sm">{pool.tvl}</td>
-                                    <td className="p-4 text-gray-300 font-mono text-sm">{pool.volume24h}</td>
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                                            <span className="text-green-400">Monitoring</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button className="inline-flex items-center justify-center p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-all border border-transparent hover:border-white/10 cursor-pointer">
-                                            <ArrowRight className="w-4 h-4" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </motion.div>
-        </div>
+        </>
     );
 }
