@@ -1,0 +1,22 @@
+{
+    "name": "@hookmind/sdk",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "viem": "^2.21.0"
+    },
+    "devDependencies": {
+        "@types/node": "^22.19.13",
+        "@types/react": "19.0.0",
+        "typescript": "^5.7.0"
+    },
+    "peerDependencies": {
+        "react": "^19.0.0"
+    }
+}

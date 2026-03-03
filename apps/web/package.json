@@ -1,0 +1,35 @@
+{
+    "name": "@hookmind/web",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint"
+    },
+    "dependencies": {
+        "@hookmind/sdk": "workspace:*",
+        "@rainbow-me/rainbowkit": "^2.2.1",
+        "@react-three/drei": "^10.7.7",
+        "@react-three/fiber": "^9.5.0",
+        "@tanstack/react-query": "^5.64.0",
+        "clsx": "^2.1.1",
+        "framer-motion": "^12.4.0",
+        "lucide-react": "^0.474.0",
+        "next": "^15.2.0",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
+        "three": "^0.172.0",
+        "viem": "^2.21.0",
+        "wagmi": "^2.14.0"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4.0.0",
+        "@types/react": "^19.0.0",
+        "@types/three": "^0.172.0",
+        "postcss": "^8.5.8",
+        "tailwindcss": "^4.0.0",
+        "typescript": "^5.7.0"
+    }
+}

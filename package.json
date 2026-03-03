@@ -1,0 +1,29 @@
+{
+  "name": "hookmind-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"./apps/*\" dev",
+    "dev:agent": "pnpm --filter \"./packages/agent\" dev",
+    "dev:mcp": "pnpm --filter \"./packages/mcp\" dev",
+    "build": "pnpm -r build",
+    "test:contracts": "cd packages/contracts && forge test --gas-report -vvv",
+    "test:coverage": "cd packages/contracts && forge coverage --report lcov",
+    "deploy:unichain-sepolia": "cd packages/contracts && forge script script/DeployHookMind.s.sol:DeployHookMind --rpc-url $UNICHAIN_SEPOLIA_RPC --broadcast --verify -vvvv",
+    "deploy:unichain-mainnet": "cd packages/contracts && forge script script/DeployHookMind.s.sol:DeployHookMind --rpc-url $UNICHAIN_MAINNET_RPC --broadcast --verify -vvvv",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "^19.0.0",
+      "react-dom": "^19.0.0"
+    }
+  }
+}

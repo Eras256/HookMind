@@ -1,0 +1,13 @@
+﻿app/providers.tsx(23,21): error TS2322: Type 'import("C:/DaAps/HookMind/node_modules/.pnpm/@types+react@19.2.14/node_modules/@types/react/index").ReactNode' is not assignable to type 'React.ReactNode'.
+  Type 'ReactElement<unknown, string | JSXElementConstructor<any>>' is not assignable to type 'ReactNode'.
+    Property 'children' is missing in type 'ReactElement<unknown, string | JSXElementConstructor<any>>' but required in type 'ReactPortal'.
+components/3d/NeuralCanvas.tsx(12,16): error TS2664: Invalid module name in augmentation, module 'react/jsx-runtime' cannot be found.
+components/3d/NeuralCanvas.tsx(105,9): error TS2339: Property 'points' does not exist on type 'JSX.IntrinsicElements'.
+components/3d/NeuralCanvas.tsx(106,13): error TS2339: Property 'bufferGeometry' does not exist on type 'JSX.IntrinsicElements'.
+components/3d/NeuralCanvas.tsx(107,17): error TS2339: Property 'bufferAttribute' does not exist on type 'JSX.IntrinsicElements'.
+components/3d/NeuralCanvas.tsx(108,17): error TS2339: Property 'bufferAttribute' does not exist on type 'JSX.IntrinsicElements'.
+components/3d/NeuralCanvas.tsx(109,17): error TS2339: Property 'bufferAttribute' does not exist on type 'JSX.IntrinsicElements'.
+components/3d/NeuralCanvas.tsx(110,17): error TS2339: Property 'bufferAttribute' does not exist on type 'JSX.IntrinsicElements'.
+components/3d/NeuralCanvas.tsx(111,13): error TS2339: Property 'bufferGeometry' does not exist on type 'JSX.IntrinsicElements'.
+components/3d/NeuralCanvas.tsx(112,13): error TS2339: Property 'shaderMaterial' does not exist on type 'JSX.IntrinsicElements'.
+components/3d/NeuralCanvas.tsx(120,9): error TS2339: Property 'points' does not exist on type 'JSX.IntrinsicElements'.
