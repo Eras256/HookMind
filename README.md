@@ -9,7 +9,13 @@
 ---
 
 ## ⚡ The Vision
-Traditional liquidity provision is static. **HookMind** transforms Uniswap v4 pools from passive AMMs into **proactive neural meshes**. By decoupling heavy AI computation from the swap path, HookMind achieves institutional-grade intelligence without sacrificing the **1s block times of Unichain**.
+Traditional liquidity provision is static and reactive. **HookMind** transforms Uniswap v4 pools from passive AMMs into **proactive neural meshes**. By decoupling heavy AI computation (LLMs & Variance Analysis) from the swap path, HookMind achieves institutional-grade intelligence without sacrificing the **1s block times of Unichain**.
+
+The protocol introduces a **4-Layer Autonomous Stack**:
+1. **Intelligence Layer**: Multi-LLM agents (Claude 3.5/GPT-4o) analyzing volatility.
+2. **Registry Layer**: 1-Click SaaS registration with native ETH activation.
+3. **Execution Layer**: Uniswap v4 Hooks with EIP-1153 Transient Storage.
+4. **Security Layer**: Prorated IL Insurance and Fee-Smoothing Yield Vaults.
 
 **[Read the Full Technical Paper here →](TECHNICAL_PAPER.md)**
 
@@ -28,20 +34,23 @@ Traditional liquidity provision is static. **HookMind** transforms Uniswap v4 po
 
 ## 🚀 Advanced Architecture
 
-### 1. 1-Click Native SaaS Activation ($O(1)$ Deployment)
-HookMind eliminates ERC-20 approval friction. The **SaaS Activation Fee** is paid directly in Native ETH (0.0015 ETH) in the same transaction as agent registration, ensuring a seamless "1-Click" experience for institutional operators.
+### 1. O(1) Asynchronous Neural State
+To maintain Unichain's performance, AI verification is handled out-of-band. The HookMindCore simply reads from a **Cached Intelligence Mapping**, ensuring that $O(1)$ swap latency is preserved even when complex LLM logic governs the parameters.
 
-### 2. Asynchronous Neural State ($O(1)$ Swaps)
-To respect Unichain's speed, all AI-heavy computation (LLM routing, cryptographic verification) is performed asynchoronously. The hook simply reads a cached `currentDynamicFee` mapping, ensuring swap latency remains near-zero.
+### 2. 1-Click Native SaaS Activation
+Institutional friction is eliminated. The **AgentRegistry** allows for atomic node deployment where the **SaaS Activation Fee (0.0015 ETH)** is paid in the same transaction as registration. No ERC-20 approvals (`approve`) are required for activation.
 
-### 3. Transient Storage & Flash Accounting
-Utilizing **EIP-1153**, HookMind passes parameters between hook calls via `TSTORE`/`TLOAD`. Fees are collected using the **Uniswap v4 Singleton ledger** (`manager.take`), eliminating unnecessary token transfers and ensuring a strictly **non-custodial** flow of technological tolls.
+### 3. Transient Storage (EIP-1153)
+The protocol utilizes modern EVM opcodes (`TSTORE`/`TLOAD`) to pass state between `beforeSwap` and `afterSwap` callbacks. This drastically reduces gas costs for dynamic fee application and prevents cross-transaction state pollution.
 
-### 4. Neural Guardrails (Anti-Manipulation)
-The Agent Node implements a **Heuristic Noise Filter**. Any price deviation exceeding 15% in a single block (Flash Loan signature) triggers an automatic abort, preventing the AI from updating state based on manipulated data.
+### 4. Fee-Smoothing Yield Vault (ERC-4626)
+Liquidity provider fees are not immediately dumped. The **YieldVault** implements a **Drip-Release Model** over 7-day epochs, transforming volatile swap revenue into stable, predictable yield for LPs.
 
-### 5. Zero-Custody Infrastructure Tolls
-HookMind operates as a **SaaS (Software-as-a-Service)** platform. It implements a 1% **Software Toll** on generated efficiencies and a one-time **SaaS Activation Fee** in Native ETH. The protocol never maintains custody of user funds.
+### 5. Prorated IL Insurance
+LPs can enroll in the **ILInsurance** pool. In the event of extreme volatility, losses are compensated using an **Epoch-based Prorating Formula**, ensuring pool solvency even during black-swan events. 
+
+### 6. Neural Guardrails (Flash Loan Protection)
+The Agent Node implements a **Heuristic Deviation Filter**. Updates are automatically aborted if block price movements exceed 15%, protecting the neural mesh from flash-loan-induced manipulation.
 
 ---
 
