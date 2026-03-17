@@ -7,6 +7,10 @@ import { toast } from "sonner";
 import { Zap, Activity, Shield, Cpu, Terminal, Plus, Lock, X, Trophy, ChevronRight } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useHookMind } from "@/hooks/useHookMind";
+import { parseUnits, formatEther } from "viem";
+import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
+import { useWriteContract, useReadContract } from "wagmi";
 import { LEADERBOARD_DATA } from "@/app/leaderboard/data";
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -31,13 +35,75 @@ interface AgentFleet {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; onClose: () => void; onDeploy: () => void }) {
+    const { address } = useAccount();
+    const { writeContractAsync } = useWriteContract();
+    const [isPending, setIsPending] = useState(false);
+
+    // Fetch dynamic native ETH activation fee from AgentRegistry
+    const { data: activationFeeNative } = useReadContract({
+        address: AGENT_REGISTRY_ADDRESS,
+        abi: AGENT_REGISTRY_ABI,
+        functionName: "activationFeeNative",
+    });
+
     if (!isOpen) return null;
+
+    const feeEth = activationFeeNative ? formatEther(activationFeeNative as bigint) : "0.0015";
+
+    const handleConfirm = async () => {
+        if (!activationFeeNative) return;
+        setIsPending(true);
+        toast.loading("Deploying Agent on Unichain...", { id: "deploy-tx" });
+        try {
+            const tx = await writeContractAsync({
+                address: AGENT_REGISTRY_ADDRESS,
+                abi: AGENT_REGISTRY_ABI,
+                functionName: 'registerAgent',
+                // For demo purposes, we create a burner / mock agent address
+                // (In a real scenario, this is derived from the operator agent setup)
+                args: [`0x${Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('')}`, "openai", parseUnits("100", 6)], 
+                value: activationFeeNative as bigint,
+            });
+            
+            toast.custom((t) => (
+                <div className="bg-[#0f0f0f] border border-neural-magenta/40 rounded-xl p-4 w-full min-w-[300px] shadow-[0_0_25px_rgba(252,114,255,0.25)] flex flex-col gap-2 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1/2 h-px bg-linear-to-r from-transparent via-neural-magenta to-transparent opacity-50" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Zap size={16} className="text-neural-magenta animate-pulse" />
+                            <span className="font-black text-white tracking-tight">Agent Deployed</span>
+                        </div>
+                        <button onClick={() => toast.dismiss(t)} className="text-gray-500 hover:text-white transition-colors"><X size={14}/></button>
+                    </div>
+                    <p className="text-[11px] text-gray-400 font-mono leading-relaxed">
+                        SaaS activation fee processed via Unichain.
+                    </p>
+                    <a 
+                        href={`https://unichain-sepolia.blockscout.com/tx/${tx}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-2 text-[11px] font-mono font-bold text-neural-magenta border border-neural-magenta/30 hover:bg-neural-magenta/10 hover:text-white px-3 py-2 rounded-lg flex items-center justify-between transition-all group"
+                    >
+                        <span>View on Blockscout</span>
+                        <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                    </a>
+                </div>
+            ), { id: "deploy-tx", duration: 15000 });
+            onDeploy();
+            onClose();
+        } catch (e: any) {
+            toast.error(e.message || "Transaction failed", { id: "deploy-tx" });
+        } finally {
+            setIsPending(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card w-full max-w-md p-6 relative">
                 <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={18} /></button>
                 <h2 className="text-xl font-black mb-2 text-white">Deploy Hook Agent</h2>
-                <p className="text-sm text-gray-400 mb-6 font-mono">Pay 5 USDC protocol fee to activate a new autonomous node on Unichain.</p>
+                <p className="text-sm text-gray-400 mb-6 font-mono">Pay the protocol fee in native ETH to activate a new autonomous node on Unichain.</p>
 
                 <div className="bg-black/50 border border-white/5 rounded-xl p-4 mb-6">
                     <div className="flex justify-between items-center mb-2">
@@ -46,22 +112,20 @@ function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; on
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-gray-400 text-xs font-mono uppercase">Deployment Fee</span>
-                        <span className="text-neural-green font-bold font-mono">5.00 USDC</span>
+                        <div className="text-right">
+                         <span className="text-neural-green font-bold font-mono block">{Number(feeEth).toFixed(4)} ETH</span>
+                         <span className="text-gray-500 text-[10px] font-mono">(~$5.00 USD)</span>
+                        </div>
                     </div>
                 </div>
 
                 <button
-                    onClick={() => {
-                        toast.loading("Deploying agent node...", { id: "deploy" });
-                        setTimeout(() => {
-                            toast.success("Agent deployed successfully!", { id: "deploy" });
-                            onDeploy();
-                            onClose();
-                        }, 2000);
-                    }}
-                    className="w-full py-3 bg-neural-magenta hover:bg-neural-magenta/90 text-black font-bold rounded-xl flex justify-center items-center gap-2"
+                    onClick={handleConfirm}
+                    disabled={isPending || !activationFeeNative}
+                    className="w-full py-3 bg-neural-magenta hover:bg-neural-magenta/90 disabled:opacity-50 text-black font-bold rounded-xl flex justify-center items-center gap-2"
                 >
-                    <Zap size={18} /> Confirm Deployment
+                    {isPending ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> : <Zap size={18} />}
+                    {isPending ? "Processing..." : "Pay SaaS Fee & Deploy Agent"}
                 </button>
             </motion.div>
         </div>
@@ -330,7 +394,7 @@ function DashboardContent() {
                                         exit={{ opacity: 0, scale: 0.95 }}
                                         transition={{ delay: i * 0.05 }}
                                         onClick={() => setSelectedAgent(agent)}
-                                        className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-[#FC72FF]/50 hover:bg-white/[0.08] transition-all cursor-pointer group"
+                                        className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-neural-magenta/50 hover:bg-white/8 transition-all cursor-pointer group"
                                     >
                                         <div className="flex items-start justify-between mb-4">
                                             <div>

@@ -1,128 +1,76 @@
 # 🧠 HookMind Protocol
-> **The Neural Liquidity Mesh: First Autonomous AI Agent Overlay for Uniswap v4 on Unichain.**
+> **The Neural Liquidity Mesh: Proactive AI Agent Overlays for Uniswap v4 on Unichain.**
 
-[![Unichain](https://img.shields.io/badge/Network-Unichain-0052FF?logo=uniswap&logoColor=white)](https://unichain.org)
+[![Unichain](https://img.shields.io/badge/Network-Unichain%20Sepolia-0052FF?logo=uniswap&logoColor=white)](https://unichain.org)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2015-black?logo=next.js)](https://nextjs.org)
 [![Solidity](https://img.shields.io/badge/Contracts-Solidity%200.8.26-363636?logo=solidity)](https://soliditylang.org)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Technical Paper](https://img.shields.io/badge/Docs-Technical%20Paper-blue)](TECHNICAL_PAPER.md)
 
 ---
 
 ## ⚡ The Vision
-Traditional liquidity provision is static. In a world of high-frequency volatility, fixed-fee pools are inefficient: they leave money on the table for arbitrageurs and expose LPs to uncompensated risk. **HookMind** fixes this by deploying a distributed mesh of AI Agents that act as the "brain" for Uniswap v4 pools.
+Traditional liquidity provision is static. **HookMind** transforms Uniswap v4 pools from passive AMMs into **proactive neural meshes**. By decoupling heavy AI computation from the swap path, HookMind achieves institutional-grade intelligence without sacrificing the **1s block times of Unichain**.
 
-HookMind uses **real-time neural signals** to adjust pool parameters on-the-fly, ensuring that LPs are always optimally positioned.
+**[Read the Full Technical Paper here →](TECHNICAL_PAPER.md)**
 
 ---
 
-## 🚀 Key Features
+## ⛓️ Deployed Contracts (Unichain Sepolia)
 
-### 1. Neural Dynamic Fees
-Every block, HookMind Agents calculate market volatility. If a surge is detected, the AI signs a signal to increase fees (up to 10,000 bps), capturing "toxic flow" revenue for LPs.
+| Contract | Address | Description |
+| :--- | :--- | :--- |
+| **HookMindCore** | [`0x450113E691b4be42EB9ca3a3E0F585a2D79915c0`](https://unichain-sepolia.blockscout.com/address/0x450113E691b4be42EB9ca3a3E0F585a2D79915c0) | The central v4 Hook managing dynamic fees and LP protection. |
+| **AgentRegistry** | [`0xeF00B7Cea0B1AB51340619b7afD48c0a5dfCc013`](https://unichain-sepolia.blockscout.com/address/0xeF00B7Cea0B1AB51340619b7afD48c0a5dfCc013) | Decoupled RBAC for authorized AI Agent operators. |
+| **YieldVault** | [`0xB4637368A6cFbfae9A9218F87CA77d813Bed7877`](https://unichain-sepolia.blockscout.com/address/0xB4637368A6cFbfae9A9218F87CA77d813Bed7877) | ERC-4626 Vault using **Flash Accounting** for zero-gas fee routing. |
+| **ILInsurance** | [`0x6A919739d655b9073135679ca0c8C5aB33448844`](https://unichain-sepolia.blockscout.com/address/0x6A919739d655b9073135679ca0c8C5aB33448844) | Solvent insurance pool with **Prorated Payouts** and risk caps. |
 
-### 2. Autonomous IL Shield
-When the pool price deviates beyond a neural-estimated "danger zone," the hook activates **IL Protection Mode**, adjusting the liquidity curve or payout structure to mitigate losses.
+---
 
-### 3. Epoch-Based Yield Smoothing
-Fees are routed to an **ERC-4626 Neural Vault** that drips rewards over 7-day epochs, creating a stable return profile for institutional and retail LPs.
+## 🚀 Advanced Architecture
 
-### 4. Immutable Audit Trail
-Every single AI decision is:
-- Computed off-chain by LLMs (Claude, GPT-o, Grok).
-- Pinned to **IPFS via Pinata** for permanent record.
-- **ECDSA-Signed** by the Agent's EOA to prevent malicious overrides.
+### 1. 1-Click Native SaaS Activation ($O(1)$ Deployment)
+HookMind eliminates ERC-20 approval friction. The **SaaS Activation Fee** is paid directly in Native ETH (0.0015 ETH) in the same transaction as agent registration, ensuring a seamless "1-Click" experience for institutional operators.
+
+### 2. Asynchronous Neural State ($O(1)$ Swaps)
+To respect Unichain's speed, all AI-heavy computation (LLM routing, cryptographic verification) is performed asynchoronously. The hook simply reads a cached `currentDynamicFee` mapping, ensuring swap latency remains near-zero.
+
+### 3. Transient Storage & Flash Accounting
+Utilizing **EIP-1153**, HookMind passes parameters between hook calls via `TSTORE`/`TLOAD`. Fees are collected using the **Uniswap v4 Singleton ledger** (`manager.take`), eliminating unnecessary token transfers and ensuring a strictly **non-custodial** flow of technological tolls.
+
+### 4. Neural Guardrails (Anti-Manipulation)
+The Agent Node implements a **Heuristic Noise Filter**. Any price deviation exceeding 15% in a single block (Flash Loan signature) triggers an automatic abort, preventing the AI from updating state based on manipulated data.
+
+### 5. Zero-Custody Infrastructure Tolls
+HookMind operates as a **SaaS (Software-as-a-Service)** platform. It implements a 1% **Software Toll** on generated efficiencies and a one-time **SaaS Activation Fee** in Native ETH. The protocol never maintains custody of user funds.
 
 ---
 
 ## 🛠 Tech Stack
 
-### Frontend & UI
-- ![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB) **React 19** ⚛️
-- ![Next.js](https://img.shields.io/badge/Next.js-000000?logo=next.js&logoColor=white) **Next.js 15 (App Router)** 🚀
-- ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?logo=tailwind-css&logoColor=white) **Tailwind CSS v4** 🎨
-- ![Framer Motion](https://img.shields.io/badge/Framer_Motion-0055FF?logo=framer&logoColor=white) **Framer Motion** ✨
-- ![Three.js](https://img.shields.io/badge/Three.js-black?logo=three.js&logoColor=white) **GPGPU Neural Particle Engine** 🧊
+### Smart Contracts (Solidity)
+- **Uniswap v4 Hooks**: Advanced logic using `TSTORE` and `Flash Accounting`.
+- **Foundry**: Comprehensive suite including integration tests (`HookMind.t.sol`).
+- **OpenZeppelin**: ECDSA and RBAC modules.
 
-### Agent & AI
-- ![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white) **Node.js 22 (Daemon)** 🟢
-- ![LLMs](https://img.shields.io/badge/AI_Models-Anthropic%20|%20OpenAI%20|%20Gemini-orange) **Anthropic Claude 3.5, Gemini 1.5, GPT-4o** 🤖
-- ![Pinata](https://img.shields.io/badge/Storage-Pinata_IPFS-E12F2F) **Web3 Archiving** 📂
-- ![Viem](https://img.shields.io/badge/Web3-Viem-yellow) **High-performance Ethereum interactions** ⛓️
-
-### Smart Contracts
-- ![Solidity](https://img.shields.io/badge/Solidity-363636?logo=solidity&logoColor=white) **Uniswap v4 Hooks** 🏗️
-- ![Foundry](https://img.shields.io/badge/Foundry-FF0000?logo=rust&logoColor=white) **Toolchain** 🔨
-- ![Circle](https://img.shields.io/badge/Circle-USDC_CCTP-2775CA?logo=circle&logoColor=white) **IL Insurance** 💵
-
----
-
-## 📂 Repository Structure
-
-```text
-.
-├── apps/
-│   └── web/            # Neural Dashboard (Next.js 15)
-├── packages/
-│   ├── agent/          # AI Execution Daemon (LLM + Signing)
-│   ├── contracts/      # HookMindCore & Vaults (Solidity/Foundry)
-│   ├── cli/            # Node-based operator toolkit
-│   ├── mcp/            # Model Context Protocol server
-│   ├── sdk/            # TypeScript SDK for integrators
-│   └── desktop/        # Tauri Desktop Wallet & Node Manager
-```
-
----
-
-## 🎨 Design Philosophy: Neural Institutional
-HookMind's UI follows a **Level 6 Sui-Loop Institutional Standard**.
-- **Neural GPGPU Canvas**: 50,000 real-time particles reacting to pool volatility.
-- **Glassmorphism**: Layered depth with high-fidelity transparency.
-- **Thematic Consistency**: Using neural-cyan and neural-magenta variables for a cohesive brand identity.
-
----
-
-## 🚦 Getting Started
-
-### 1. Requirements
-- Node.js 22+
-- Pnpm 9+
-- Foundry (for contracts)
-
-### 2. Installation
-```bash
-# Clone the repository
-git clone https://github.com/Eras256/HookMind
-cd HookMind
-
-# Install dependencies
-pnpm install
-
-# Setup env
-cp .env.example .env.local
-```
-
-### 3. Development
-```bash
-# Start the web dashboard
-pnpm dev
-
-# Start the agent daemon
-pnpm dev:agent
-```
+### Autonomous Agent (Node.js)
+- **Statistical Engine**: Variance-based volatility analysis ($\sigma^2$).
+- **Multi-LLM Matrix**: Native support for **OpenAI (GPT-4o)**, **Anthropic (Claude 3.5)**, and **Gemini 1.5 Pro**.
+- **Neural Mock Mode**: A deterministic simulation engine for CI/CD testing and low-latency demo environments.
+- **Viem**: Optimized interaction with Unichain Sepolia.
 
 ---
 
 ## 🛡 Security Architecture
-- **ECDSA Guardians**: Every signal must be signed by an authorized EOA stored in `AgentRegistry.sol`.
-- **Parametric Constraints**: Fees and protecting flags are clamped within strict sanity bounds at the contract level.
-- **Multisig Circuit Breaker**: Emergency pause functionality for extreme market conditions.
+- **ECDSA Sig Verification**: Only out-of-band signals from registered agents are accepted.
+- **Parametric Constraints**: All dynamic fees are clamped between 5 bps and 100 bps on-chain.
+- **Neural TWAP**: Agent decisions are weighted against a 10-minute TWAP to ignore high-frequency noise.
 
 ---
 
-## 🏆 Hackathon Tracks
-- **Unichain**: Primary scaling layer for real-time AI signals.
-- **Circle (USDC)**: Native payout currency for IL Insurance pools via CCTP.
-- **EigenLayer**: Future-proofing with AVS for agent delegation.
+## 🏆 Deployment Status
+- **Contracts**: 100% Deployed & Verified on Unichain Sepolia.
+- **Agent Node**: 100% Functional with **Flash Loan Protection**.
+- **Dashboard**: High-fidelity telemetry connected to real-time events.
 
 ---
-Created with 🧠 by **HookMind Labs** for the **UHI9 Hookathon**.
+Created with 🧠 by **HookMind Labs** for the **Unichain Hookathon**.

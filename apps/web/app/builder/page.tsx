@@ -1,13 +1,16 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import {
     ReactFlow, MiniMap, Controls, Background, useNodesState,
-    useEdgesState, addEdge, Connection, Edge, Panel,
+    useEdgesState, addEdge, Connection, Edge, Panel, useReactFlow, ReactFlowProvider
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Save, Copy, ChevronRight, Brain, Zap, Activity, PlusCircle, MinusCircle, Clock, TrendingUp, Shield, Radio, Search, Cpu, Lock, Sliders, Database, PauseCircle, Pin, MessageSquare, KeyRound } from "lucide-react";
+import { Save, Copy, ChevronRight, Brain, Zap, Activity, PlusCircle, MinusCircle, Clock, TrendingUp, Shield, Radio, Search, Cpu, Lock, Sliders, Database, PauseCircle, Pin, MessageSquare, KeyRound, X } from "lucide-react";
+import { useWriteContract, useReadContract } from "wagmi";
+import { parseUnits } from "viem";
+import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
 
 const HOOK_NODE_TEMPLATES = [
     {
@@ -87,9 +90,28 @@ const INITIAL_EDGES = [
 ] as Edge[];
 
 export default function BuilderPage() {
+    return (
+        <ReactFlowProvider>
+            <BuilderContent />
+        </ReactFlowProvider>
+    );
+}
+
+function BuilderContent() {
+    const reactFlowWrapper = useRef<HTMLDivElement>(null);
+    const { screenToFlowPosition } = useReactFlow();
     const [nodes, setNodes, onNodesChange] = useNodesState(INITIAL_NODES as any);
     const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
     const [stratName, setStratName] = useState("My Custom Hook Strategy");
+    const [isDeploying, setIsDeploying] = useState(false);
+
+    const { data: activationFeeNative } = useReadContract({
+        address: AGENT_REGISTRY_ADDRESS,
+        abi: AGENT_REGISTRY_ABI as any,
+        functionName: "activationFeeNative",
+    });
+
+    const { writeContractAsync } = useWriteContract();
 
     const onConnect = useCallback(
         (params: Connection | Edge) =>
@@ -97,13 +119,64 @@ export default function BuilderPage() {
         [setEdges]
     );
 
-    const addNode = (item: { label: string; type: string }) => {
+    const addNode = useCallback((item: { label: string; type: string }, position?: { x: number; y: number }) => {
         const id = `n-${Date.now()}`;
-        setNodes((prev) => [
-            ...prev,
-            { id, type: "default", data: { label: item.label }, position: { x: 200 + Math.random() * 300, y: 150 + Math.random() * 200 }, style: mkStyle(item.type) },
-        ]);
+        
+        setNodes((nds) => {
+            const lastNode = nds.length > 0 ? nds[nds.length - 1] : null;
+            const x = position ? position.x : (lastNode ? lastNode.position.x : 200 + Math.random() * 100);
+            const y = position ? position.y : (lastNode ? lastNode.position.y + 130 : 150 + Math.random() * 100);
+
+            const newNode = {
+                id,
+                type: "default",
+                data: { label: item.label },
+                position: { x, y },
+                style: mkStyle(item.type)
+            };
+
+            if (lastNode) {
+                const strokeColor = NODE_STYLE[item.type]?.border || "#FC72FF";
+                setEdges((eds) => addEdge({
+                    id: `e${lastNode.id}-${id}`,
+                    source: lastNode.id,
+                    target: id,
+                    animated: true,
+                    style: { stroke: strokeColor.replace(/rgba\((.*?),\s*[\d.]+\)/, "rgb($1)"), strokeWidth: 2 }
+                } as Edge, eds));
+            }
+
+            return [...nds, newNode];
+        });
+    }, [setNodes, setEdges]);
+
+    const onDragStart = (event: React.DragEvent, nodeType: string, label: string) => {
+        event.dataTransfer.setData('application/reactflow', JSON.stringify({ type: nodeType, label }));
+        event.dataTransfer.effectAllowed = 'move';
     };
+
+    const onDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
+
+    const onDrop = useCallback(
+        (event: React.DragEvent) => {
+            event.preventDefault();
+
+            const dataStr = event.dataTransfer.getData('application/reactflow');
+            if (!dataStr) return;
+
+            const data = JSON.parse(dataStr);
+            const position = screenToFlowPosition({
+                x: event.clientX,
+                y: event.clientY,
+            });
+
+            addNode(data, position);
+        },
+        [screenToFlowPosition, addNode]
+    );
 
     const exportJSON = () => {
         const triggers = nodes.filter((n) => (mkStyle((n as any).nodeType ?? "trigger") && (n.data as any).label?.includes("BEFORE") || (n.data as any).label?.includes("TICK") || (n.data as any).label?.includes("AFTER") || (n.data as any).label?.includes("LIQUIDITY"))).map((n) => (n.data as any).label);
@@ -126,9 +199,51 @@ export default function BuilderPage() {
         toast.success("Strategy exported! Drop the JSON into your agent config.");
     };
 
-    const deployStrategy = () => {
-        toast.loading("Deploying strategy to Agent Daemon on Unichain...", { id: "deploy-builder" });
-        setTimeout(() => toast.success("Strategy active! Agent is live on Unichain.", { id: "deploy-builder" }), 2200);
+    const deployStrategy = async () => {
+        const fee = activationFeeNative ? (activationFeeNative as any) : parseUnits("0.0015", 18);
+        setIsDeploying(true);
+        toast.loading("Deploying Custom Strategy to Unichain...", { id: "deploy-builder" });
+        
+        try {
+            const tx = await writeContractAsync({
+                address: AGENT_REGISTRY_ADDRESS,
+                abi: AGENT_REGISTRY_ABI as any,
+                functionName: 'registerAgent',
+                // Using Burner address simulating Custom Agent Generation, and applying the custom Strategy/Agent name
+                args: [`0x${Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('')}`, stratName || "My Custom Hook Strategy", parseUnits("150", 6)], 
+                value: fee as any,
+            } as any);
+
+            toast.custom((t) => (
+                <div className="bg-[#0f0f0f] border border-neural-magenta/40 rounded-xl p-4 w-full min-w-[300px] shadow-[0_0_25px_rgba(252,114,255,0.25)] flex flex-col gap-2 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1/2 h-px bg-linear-to-r from-transparent via-neural-magenta to-transparent opacity-50" />
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Zap size={16} className="text-neural-magenta animate-pulse" />
+                            <span className="font-black text-white tracking-tight">Strategy Deployed</span>
+                        </div>
+                        <button onClick={() => toast.dismiss(t)} className="text-gray-500 hover:text-white transition-colors"><X size={14}/></button>
+                    </div>
+                    <p className="text-[11px] text-gray-400 font-mono leading-relaxed">
+                        Custom Hook Strategy deployed via Unichain.
+                    </p>
+                    <a 
+                        href={`https://unichain-sepolia.blockscout.com/tx/${tx}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-2 text-[11px] font-mono font-bold text-neural-magenta border border-neural-magenta/30 hover:bg-neural-magenta/10 hover:text-white px-3 py-2 rounded-lg flex items-center justify-between transition-all group"
+                    >
+                        <span>View on Blockscout</span>
+                        <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+                    </a>
+                </div>
+            ), { id: "deploy-builder", duration: 15000 });
+
+        } catch (e: any) {
+            toast.error(e.message || "Deployment failed", { id: "deploy-builder" });
+        } finally {
+            setIsDeploying(false);
+        }
     };
 
     return (
@@ -153,6 +268,9 @@ export default function BuilderPage() {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => { setNodes(INITIAL_NODES as any); setEdges(INITIAL_EDGES); toast.info("Canvas reset to template."); }} className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm text-red-500/70 border-red-500/20">
+                        <X size={14} /> Reset
+                    </motion.button>
                     <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={exportJSON} className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm">
                         <Copy size={14} /> Export JSON
                     </motion.button>
@@ -172,16 +290,19 @@ export default function BuilderPage() {
                                 {g.category}
                             </div>
                             <div className="space-y-1">
-                                {g.items.map((item) => {
+                                {g.items.map((item, idx) => {
                                     const Icon = item.icon;
                                     return (
                                         <motion.button
-                                            key={item.label}
+                                            key={`${g.category}-${item.label}-${idx}`}
                                             whileHover={{ scale: 1.02, x: 3 }}
                                             whileTap={{ scale: 0.97 }}
                                             onClick={() => addNode(item)}
-                                            className="w-full text-left p-2 rounded-xl text-[11px] font-mono transition-all flex items-center gap-2"
+                                            className="w-full text-left p-2 rounded-xl text-[11px] font-mono transition-all flex items-center gap-2 cursor-grab active:cursor-grabbing"
                                             style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${g.accentColor}22`, color: "#ccc" }}
+                                            // Using native onDragStart for React Flow compatibility
+                                            onDragStart={(e) => onDragStart(e as any, item.type, item.label)}
+                                            draggable
                                         >
                                             <Icon size={12} style={{ color: g.accentColor, flexShrink: 0 }} />
                                             <span className="truncate">{item.label}</span>
@@ -195,11 +316,14 @@ export default function BuilderPage() {
                 </div>
 
                 {/* ReactFlow Canvas */}
-                <div className="flex-1 rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(252,114,255,0.15)", background: "rgba(8,8,18,0.9)" }}>
+                <div ref={reactFlowWrapper} className="flex-1 rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(252,114,255,0.15)", background: "rgba(8,8,18,0.9)" }}>
                     <ReactFlow
                         nodes={nodes} edges={edges}
                         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-                        onConnect={onConnect} fitView
+                        onConnect={onConnect}
+                        onDragOver={onDragOver}
+                        onDrop={onDrop}
+                        fitView
                     >
                         <Background color="rgba(252,114,255,0.2)" gap={24} size={1} />
                         <Controls style={{ background: "rgba(10,10,20,0.9)", border: "1px solid rgba(252,114,255,0.2)", borderRadius: 10 }} />
