@@ -5,6 +5,7 @@
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2015-black?logo=next.js)](https://nextjs.org)
 [![Solidity](https://img.shields.io/badge/Contracts-Solidity%200.8.26-363636?logo=solidity)](https://soliditylang.org)
 [![Technical Paper](https://img.shields.io/badge/Docs-Technical%20Paper-blue)](TECHNICAL_PAPER.md)
+[![Watch the Demo](https://img.shields.io/badge/Demo-Watch_Video-FF0000?logo=youtube&logoColor=white)](#)
 
 ---
 
