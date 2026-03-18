@@ -30,7 +30,7 @@ const generateSignalData = () => {
 const SIGNAL_DATA = generateSignalData();
 
 // ── Registry Node Status ──────────────────────────────────────────────────
-function NodeStatus({ active }: { active: boolean }) {
+function NodeStatus({ active, t }: { active: boolean, t: any }) {
     const color = active ? "#00FFA3" : "#FC72FF";
     return (
         <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-6">
@@ -41,9 +41,9 @@ function NodeStatus({ active }: { active: boolean }) {
                 {active && <span className="absolute -top-1 -right-1 w-3 h-3 bg-neural-green rounded-full animate-pulse shadow-[0_0_100px_#00FFA3]" />}
             </div>
             <div>
-                <div className="text-[10px] text-gray-500 font-mono tracking-widest uppercase mb-1">Node Status</div>
+                <div className="text-[10px] text-gray-500 font-mono tracking-widest uppercase mb-1">{t.vault.node_status}</div>
                 <div className={`text-lg font-black tracking-tighter italic uppercase`} style={{ color }}>
-                    {active ? "Registry Active" : "Activation Required"}
+                    {active ? t.vault.active : t.nav.connectivity}
                 </div>
             </div>
         </div>
@@ -52,21 +52,19 @@ function NodeStatus({ active }: { active: boolean }) {
 
 export default function RegistryPage() {
     const { isConnected } = useAccount();
-    const { payInsurancePremium } = useHookMind(); // Reuse for 10 MXN fee
-    const { t, language } = useLanguage();
+    const { t } = useLanguage();
     const [activating, setActivating] = useState(false);
     const [active, setActive] = useState(false);
 
     const handleActivate = async () => {
         if (!isConnected) {
-            toast.error(t.vault.toast_connect || "Please connect wallet");
+            toast.error(t.agents.connect_title || "Please connect wallet");
             return;
         }
 
         setActivating(true);
         try {
-            // Mocking the 10 MXN fee payment
-            toast.loading(t.agents.connect_title || "Activating Registry Node...", { id: "activate" });
+            toast.loading(t.vault.description || "Activating Registry Node...", { id: "activate" });
             await new Promise(r => setTimeout(r, 2000));
             toast.success("Node Successfully Registered on Unichain!", { id: "activate" });
             setActive(true);
@@ -79,39 +77,38 @@ export default function RegistryPage() {
     };
 
     const registryStats = useMemo(() => [
-        { label: "P2P Swarm Volume (24h)", value: "142,820", icon: Activity, color: "#FC72FF" },
-        { label: "Collective Neural Consensus", value: "98.4%", icon: Zap, color: "#00F2FE" },
-        { label: t.nav.registry, value: "100 CELO", icon: DollarSign, color: "text-amber-400" },
-        { label: "Active Network Nodes", value: "8,247", icon: Globe, color: "#00FFA3" },
-    ], []);
+        { label: t.vault.signal_volume, value: "142,820", icon: Activity, color: "#FC72FF" },
+        { label: t.vault.consensus, value: "98.4%", icon: Zap, color: "#00F2FE" },
+        { label: t.vault.activation_fee, value: t.vault.fee_amount, icon: DollarSign, color: "#A78BFA" },
+        { label: t.vault.active_nodes, value: "8,247", icon: Globe, color: "#00FFA3" },
+    ], [t]);
 
     return (
         <div className="pt-20 px-5 max-w-7xl mx-auto pb-16">
             {/* Header */}
-            <div className="pt-8 mb-10">
+            <div className="pt-8 mb-10 text-center md:text-left">
                 <div className="inline-flex items-center gap-2 neon-badge mb-4">
                     <span className="w-1.5 h-1.5 rounded-full bg-neural-magenta animate-pulse" />
-                    Agent Registry & P2P Swarm
+                    {t.nav.registry} & P2P Swarm
                 </div>
                 <h1 className="text-3xl sm:text-5xl font-black tracking-tighter mb-3">
-                    Activate Your <br className="sm:hidden" />
-                    <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-magenta to-neural-cyan">
-                        Neural Hub
+                    {t.vault.title.split(' ')[0]} <br className="sm:hidden" />
+                    <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-magenta to-neural-cyan slice-accent">
+                        {t.vault.title.split(' ').slice(1).join(' ')}
                     </span>
                 </h1>
-                <p className="text-gray-500 max-w-2xl font-mono text-sm leading-relaxed">
-                    HookMind's Agent Registry is the primary gateway for Unichain node operators. 
-                    Join the P2P swarm intelligence layer and start contributing to scalable signal volume.
+                <p className="text-gray-500 max-w-2xl font-mono text-sm leading-relaxed mx-auto md:mx-0">
+                    {t.vault.description}
                 </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
                 {/* ── Signal Volume Panel (3 cols) ─────────────────────── */}
                 <div className="lg:col-span-3 glass-card p-6 space-y-6">
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
                         <h2 className="font-bold text-lg flex items-center gap-2">
                             <TrendingUp className="w-5 h-5 text-neural-cyan" />
-                            Swarm Signal Metrics
+                            {t.vault.swarm_metrics}
                         </h2>
                         <span className="neon-badge text-[10px] text-neural-green">
                             NETWORK STATUS: SYNCED
@@ -166,31 +163,30 @@ export default function RegistryPage() {
                         onClick={() => window.location.href = '/leaderboard'}
                         className="w-full py-4 rounded-xl font-black italic uppercase tracking-widest text-sm bg-neural-magenta text-black shadow-[0_0_20px_rgba(252,114,255,0.2)]"
                     >
-                        View Collective Intelligence Ranking →
+                        {t.common.view_rankings} →
                     </motion.button>
                 </div>
 
                 {/* ── Node Activation Panel (2 cols) ───────────────────── */}
                 <div className="lg:col-span-2 flex flex-col gap-5">
-                    <NodeStatus active={active} />
+                    <NodeStatus active={active} t={t} />
 
                     <div className="glass-card p-6 flex flex-col gap-5 flex-1 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-neural-cyan/10 blur-[60px] -z-10 group-hover:bg-neural-cyan/20 transition-all" />
                         
                         <h2 className="font-bold text-lg flex items-center gap-2">
                             <Shield className="w-5 h-5 text-neural-cyan" />
-                            Registry Gateway
+                            {t.vault.gateway_title}
                         </h2>
 
-                        <div className="p-4 rounded-xl bg-neural-cyan/5 border border-neural-cyan/20 text-sm font-mono leading-relaxed text-gray-400">
-                             To start processing <strong className="text-white">P2P Swarm Signals</strong>, each node must pay a one-time activation fee. 
-                             This ensures network stability and a sustainable <strong className="text-white">Revenue First</strong> model.
+                        <div className="p-4 rounded-xl bg-neural-cyan/5 border border-neural-cyan/20 text-xs font-mono leading-relaxed text-gray-400">
+                             {t.vault.gateway_desc}
                         </div>
 
                         <div className="space-y-4 my-4">
                             <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
-                                <span className="text-gray-500 font-mono uppercase tracking-tighter">Activation Fee</span>
-                                <span className="font-black text-white font-mono">10.00 MXN</span>
+                                <span className="text-gray-500 font-mono uppercase tracking-tighter">{t.vault.activation_fee}</span>
+                                <span className="font-black text-white font-mono">{t.vault.fee_amount}</span>
                             </div>
                             <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
                                 <span className="text-gray-500 font-mono uppercase tracking-tighter">Network Access</span>
@@ -219,13 +215,13 @@ export default function RegistryPage() {
                             ) : activating ? (
                                 <><div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" /> Finalizing...</>
                             ) : (
-                                <><Zap className="w-4 h-4" /> Activate Node (10 MXN)</>
+                                <><Zap className="w-4 h-4" /> {t.vault.activate_btn}</>
                             )}
                         </motion.button>
                         
                         {!active && (
-                            <p className="text-[10px] text-center text-gray-600 font-mono uppercase tracking-widest mt-2">
-                                Requires Unichain Sepolia Connection
+                            <p className="text-[10px] text-center text-gray-600 font-mono uppercase tracking-widest mt-2 px-2">
+                                Requires Unichain Mainnet Connection
                             </p>
                         )}
                     </div>

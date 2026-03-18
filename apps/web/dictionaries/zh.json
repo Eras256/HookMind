@@ -76,7 +76,7 @@
   },
   "agents": {
     "connect_title": "连接钱包激活注册",
-    "connect_desc": "您的注册控制台已锁定。连接您的钱包并支付 100 CELO 费用以启动您的代理。",
+    "connect_desc": "您的注册控制台已锁定。连接您的钱包并支付 0.00244 ETH 费用以启动您的代理。",
     "node_online": "UNICHAIN 注册中心在线",
     "console_title": "操作员控制台",
     "console_desc": "监控您的 AI 代理性能和集群参与度。钱包：",
@@ -141,7 +141,7 @@
     "revenue": "集群交易量",
     "action": "操作",
     "you": "您",
-    "stats_update_info": "您的指标实时更新。支付 100 CELO 注册费开始冲榜！",
+    "stats_update_info": "您的指标实时更新。支付 0.00244 ETH 注册费开始冲榜！",
     "climb_info": "→ 提高您的集群量以提升排名！⚡",
     "how_to_climb": "如何提升排名？",
     "run_daemon_info": "运行您的代理节点以处理更多集群信号！"
@@ -321,7 +321,7 @@
     }
   },
   "footer": {
-    "description": "首个控制 Uniswap v4 Hooks 的自主 AI 代理协议。通过 Unichain 上极具竞争力的 100 CELO 注册费扩展 P2P 智能。",
+    "description": "首个控制 Uniswap v4 Hooks 的自主 AI 代理协议。通过 Unichain 上极具竞争力的 0.00244 ETH 注册费扩展 P2P 智能。",
     "ecosystem": "集群生态",
     "developers": "开发者",
     "dashboard": "注册控制台",
@@ -334,6 +334,22 @@
     "unichain_explorer": "Unichain 浏览器",
     "rights": "保留所有权利。",
     "mainnet_active": "注册已激活"
+  },
+  "vault": {
+    "title": "注册控制台",
+    "description": "激活您的节点并加入 P2P 集群网络。",
+    "node_status": "节点状态",
+    "active": "活跃",
+    "inactive": "未激活",
+    "activation_fee": "激活费",
+    "fee_amount": "0.00244 ETH",
+    "activate_btn": "激活节点 (0.00244 ETH)",
+    "swarm_metrics": "集群信号指标",
+    "signal_volume": "P2P 集群成交量 (24h)",
+    "consensus": "神经共识",
+    "active_nodes": "活跃节点",
+    "gateway_title": "注册网关",
+    "gateway_desc": "激活节点需要支付 0.00244 ETH 的一次性设置费。这涵盖了您的初始信号吞吐量配额，并确保了您在 P2P 运营商网格中的位置。"
   },
   "docs": {
     "hero_badge": "协议文档",
@@ -358,17 +374,17 @@
       "agent_models": "集群模型",
       "ipfs_audits": "集群审计",
       "what_is": "什么是 HookMind？",
-      "desc": "HookMind 是首个控制 Unichain 上 Uniswap v4 Hook 的自主 AI 代理集群。每个节点支付低门槛的 100 CELO 费用加入注册中心，为可验证的 P2P 智能层做出贡献，优化下一代 DeFi。",
+      "desc": "HookMind 是首个控制 Unichain 上 Uniswap v4 Hook 的自主 AI 代理集群。每个节点支付低门槛的 0.00244 ETH 费用加入注册中心，为可验证的 P2P 智能层做出贡献，优化下一代 DeFi。",
       "problems_solved": "商业成熟度关注点：",
       "static_fees": "可扩展模型",
       "il": "P2P 集群信号量",
       "volatile_yield": "低入门门槛",
-      "dynamic_ai_fees": "收入优先 (100 CELO)",
+      "dynamic_ai_fees": "收入优先 (0.00244 ETH)",
       "native_il_protection": "集群整合",
       "smooth_yield": "机构级交易量",
       "how_it_works": {
         "title_1": "集群激活",
-        "desc_1": "用户支付 100 CELO 来注册其节点并加入 P2P 信号网络。",
+        "desc_1": "用户支付 0.00244 ETH 来注册其节点并加入 P2P 信号网络。",
         "title_2": "信号处理",
         "desc_2": "节点处理区块级数据并生成 P2P 信号，存储在 IPFS 上用于集群验证。",
         "title_3": "注册收入",
@@ -376,7 +392,7 @@
       },
       "revenue_title": "可扩展收入模型",
       "rev_card_1_title": "注册激活",
-      "rev_card_1_price": "100 CELO",
+      "rev_card_1_price": "0.00244 ETH",
       "rev_card_1_desc": "高流转入门费。专为大规模去中心化采用而构建。",
       "rev_card_2_title": "集群佣金",
       "rev_card_2_price": "1% 信号量",
@@ -389,8 +405,8 @@
     "quickstart": {
       "step_1": "克隆与安装",
       "step_2": "配置网络",
-      "step_3": "支付注册费 (100 CELO)",
-      "step_3_desc": "以 100 CELO 解锁您的节点以加入 Unichain 集群：",
+      "step_3": "支付注册费 (0.00244 ETH)",
+      "step_3_desc": "以 0.00244 ETH 解锁您的节点以加入 Unichain 集群：",
       "step_4": "启动集群守护进程",
       "step_5": "监控集群交易量"
     },
@@ -412,10 +428,10 @@
     },
     "contracts": {
       "core_desc": "最终确定的集群信号的 Hook 执行器。应用共识驱动的参数。",
-      "registry_desc": "主要收入入口。处理节点激活 (100 CELO) 和集群身份。",
+      "registry_desc": "主要收入入口。处理节点激活 (0.00244 ETH) 和集群身份。",
       "vault_desc": "处理协议范围内入门费的注册收入池。",
       "insurance_desc": "企业级集群协议的高额结算层。",
-      "fees_desc": "100 CELO 费用和信号佣金的中央核算。"
+      "fees_desc": "0.00244 ETH 费用和信号佣金的中央核算。"
     },
     "security": {
       "threat_matrix": "集群安全矩阵"
