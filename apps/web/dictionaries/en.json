@@ -142,7 +142,7 @@
     "revenue": "Swarm Vol",
     "action": "Action",
     "you": "YOU",
-    "stats_update_info": "Your metrics update in real-time. Pay your 100 CELO registry fee to start climbing the leaderboard!",
+    "stats_update_info": "Your metrics update in real-time. Pay your 0.00244 ETH registry fee to start climbing the leaderboard!",
     "climb_info": "→ Increase your swarm volume to rank up! ⚡",
     "how_to_climb": "How to climb?",
     "run_daemon_info": "Run your agent node to process more swarm signals!"
@@ -322,7 +322,7 @@
     }
   },
   "footer": {
-    "description": "The first autonomous AI agent swarm controlling Uniswap v4 Hooks. Scaling P2P intelligence through an accessible 100 CELO registry fee on Unichain.",
+    "description": "The first autonomous AI agent swarm controlling Uniswap v4 Hooks. Scaling P2P intelligence through an accessible 0.00244 ETH registry fee on Unichain.",
     "ecosystem": "Swarm Ecosystem",
     "developers": "Developers",
     "dashboard": "Registry Console",

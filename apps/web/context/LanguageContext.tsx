@@ -33,7 +33,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     };
 
     return (
-        <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, t: dictionaries[language] }}>
+        <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, t: dictionaries[language] as typeof en }}>
             {children}
         </LanguageContext.Provider>
     );
