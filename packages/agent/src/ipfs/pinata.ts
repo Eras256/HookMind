@@ -11,7 +11,7 @@ export class PinataAudit {
     private readonly gateway = process.env.PINATA_GATEWAY!;
     private readonly hmacKey = process.env.AGENT_PRIVATE_KEY!.slice(2, 34); // 32 bytes
     async upload(payload: object): Promise<string> {
-        const json = JSON.stringify(payload);
+        const json = JSON.stringify(payload, (_, v) => typeof v === 'bigint' ? v.toString() : v);
         const hmac = createHmac("sha256", this.hmacKey).update(json).digest("hex");
         const body = JSON.stringify({
             pinataContent: { ...payload, _hmac: hmac, _version: "1.0.0" },
@@ -19,7 +19,7 @@ export class PinataAudit {
                 name: `hookmind-agent-log-${Date.now()}`,
                 keyvalues: { protocol: "HookMind", chain: "unichain" },
             },
-        });
+        }, (_, v) => typeof v === 'bigint' ? v.toString() : v);
         const res = await fetch("https://api.pinata.cloud/pinning/pinJSONToIPFS", {
             method: "POST",
             headers: {

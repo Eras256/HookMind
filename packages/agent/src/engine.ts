@@ -20,6 +20,7 @@ import { LLMRouter } from "./providers/llm/router";
 import { PoolReader } from "./providers/chain/poolReader";
 import { VolatilityStrategy } from "./strategies/volatilityFee";
 import { ILMonitor } from "./strategies/ilMonitor";
+import { NeuralDataWorker } from "./worker/dataProcessor";
 import { PinataAudit } from "./ipfs/pinata";
 import { AgentSigner } from "./signer";
 import type { WSServer } from "./ws/server";
@@ -60,6 +61,7 @@ export class AgentEngine {
     private readonly poolReader = new PoolReader(this.client);
     private readonly volatility = new VolatilityStrategy();
     private readonly ilMonitor = new ILMonitor();
+    private readonly dataWorker = new NeuralDataWorker();
     private readonly pinata = new PinataAudit();
     private readonly signer = new AgentSigner(this.account);
     private isAlive = true;
@@ -90,21 +92,41 @@ export class AgentEngine {
         const hookAddress = process.env.HOOK_MIND_CORE_ADDRESS as `0x${string}`;
         const poolKeyHash = process.env.TARGET_POOL_ID as `0x${string}`;
         // ── STEP 1: Read current pool state from Unichain ──────────────────────
-        log.info("📡 Step 1 — Reading pool state from Unichain...");
+        log.info("📡 Step 1 — Reading pool state & TWAP from Unichain...");
         const poolState = await this.poolReader.readPoolState(hookAddress, poolKeyHash);
-        const recentSwaps = await this.poolReader.getRecentSwapEvents(hookAddress, 50n);
-        this.wsServer.broadcast({ type: "pool_state", data: poolState });
-        // ── STEP 2: Compute volatility score from recent swap deltas ───────────
-        log.info("📊 Step 2 — Computing volatility score...");
-        const volatilityScore = this.volatility.compute(recentSwaps);
+        const twap = await this.poolReader.getTWAP(poolKeyHash);
+        const history = await this.poolReader.getPriceHistory(poolKeyHash);
+        
+        // ── STEP 2: Statistical Volatility & Flash Loan Detection ──────────
+        log.info("📊 Step 2 — Running Neural Data Worker (Variance + Guards)...");
+        let analysis;
+        try {
+            analysis = this.dataWorker.prepareNeuralPayload(
+                poolState.spotPrice, 
+                twap, 
+                history, 
+                poolState
+            );
+        } catch (error: any) {
+            log.error(`🛑 NEURAL GUARDRAIL: ${error.message}`);
+            this.wsServer.broadcast({ 
+                type: "guardrail_alert", 
+                message: error.message 
+            });
+            return; // Abort cycle
+        }
+
+        const volatilityScore = analysis.volatilityScore;
         const ilExposure = this.ilMonitor.computeExposure(poolState);
+        
         this.wsServer.broadcast({ type: "metrics", volatilityScore, ilExposure });
-        log.info(`  → Volatility: ${volatilityScore}/10000 | IL Exposure: ${ilExposure}`);
+        log.info(`  → σ² Variance metrics processed. Score: ${volatilityScore}/10000`);
+
         // ── STEP 3: Query LLM for optimal hook parameters ──────────────────────
-        log.info("🧠 Step 3 — Querying Neural Provider...");
+        log.info("🧠 Step 3 — Querying Neural Provider with Verified Data...");
         const llmDecision = await this.llmRouter.query({
             systemPrompt: AGENT_SYSTEM_PROMPT,
-            userMessage: buildLLMMessage(poolState, volatilityScore, ilExposure),
+            userMessage: JSON.stringify(analysis.jsonPayload, null, 2),
         });
         log.info(`  → LLM decision: fee=${llmDecision.feeBps}bps, IL=${llmDecision.activateIL}`);
         this.wsServer.broadcast({ type: "llm_decision", data: llmDecision });
@@ -120,41 +142,41 @@ export class AgentEngine {
             llmDecision,
             poolState,
         };
-        const cid = await this.pinata.upload(auditPayload);
-        log.info(`  → IPFS CID: ${cid}`);
+        let cid = "ipfs://pending_testnet";
+        try {
+            cid = await this.pinata.upload(auditPayload);
+            log.info(`  → IPFS CID: ${cid}`);
+        } catch (err: any) {
+            log.warn(`  → IPFS pinning failed (non-fatal): ${err.message}`);
+        }
         this.wsServer.broadcast({ type: "ipfs_cid", cid });
         // ── STEP 5: Sign the hook signal with ECDSA ────────────────────────────
         log.info("✍️  Step 5 — Signing agent signal...");
-        const nonce = await this.poolReader.getAgentNonce(this.account.address);
+        log.info(`  → Params: pool=${poolKeyHash}, fee=${llmDecision.feeBps}, IL=${llmDecision.activateIL}, chain=${this.chain.id}`);
         const signature = await this.signer.signSignal({
             poolId: poolKeyHash,
-            feeBps: llmDecision.feeBps,
-            volatility: volatilityScore,
+            fee: llmDecision.feeBps,
             ilProtect: llmDecision.activateIL,
-            ipfsCID: cid,
-            nonce,
             chainId: this.chain.id,
         });
-        // ── STEP 6: Submit signal to HookMindCore on-chain ─────────────────────
-        log.info("⛓️  Step 6 — Submitting on-chain signal...");
+
+        // ── STEP 6: Submit signal to HookMindCore on-chain (Asynchronous Update)
+        log.info("⛓️  Step 6 — Submitting on-chain neural state update...");
         const HOOK_ABI = parseAbi([
-            "function submitAgentSignal(tuple(address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) key, uint24 newFeeBps, uint256 volatility, bool ilProtect, string ipfsCID, uint256 nonce, bytes signature) external",
+            "function updateNeuralState((address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) key, uint24 newFee, bool ilProtect, bytes signature) external",
         ]);
         const txHash = await this.walletClient.writeContract({
             address: hookAddress,
             abi: HOOK_ABI,
-            functionName: "submitAgentSignal",
+            functionName: "updateNeuralState",
             args: [
                 poolState.key,
                 llmDecision.feeBps,
-                BigInt(volatilityScore),
                 llmDecision.activateIL,
-                cid,
-                nonce,
                 signature,
             ],
         });
-        log.info(`  ✅ Signal submitted! TxHash: ${txHash}`);
+        log.info(`  ✅ Neural State Updated! TxHash: ${txHash}`);
         this.wsServer.broadcast({ type: "tx_confirmed", txHash, cid });
     }
 }
@@ -177,15 +199,26 @@ Principles:
 `.trim();
 function buildLLMMessage(
     poolState: any,
-    volatility: number,
+    analysis: any,
+    twap: number,
     ilExposure: bigint
 ): string {
     return JSON.stringify({
-        currentFeeBps: poolState.currentFeeBps,
-        volatilityScore: volatility,
-        ilExposureBps: Number(ilExposure) / 100,
-        recentSwapCount: poolState.recentSwapCount,
-        liquidityDepth: poolState.liquidity.toString(),
-        blockTimestamp: poolState.blockNumber.toString(),
+        marketCondition: {
+            spotPrice: poolState.spotPrice,
+            twap10m: twap,
+            priceVariance: analysis.variance,
+            volatilityScore: analysis.score,
+            isStable: analysis.score < 3000
+        },
+        liquidity: {
+            depth: poolState.liquidity.toString(),
+            ilExposureBps: Number(ilExposure) / 100,
+        },
+        poolMetadata: {
+            currentFeeBps: poolState.currentFeeBps,
+            recentSwapCount: poolState.recentSwapCount,
+            block: poolState.blockNumber.toString()
+        }
     }, null, 2);
 }

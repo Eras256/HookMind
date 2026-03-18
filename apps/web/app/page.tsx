@@ -7,6 +7,7 @@ import {
     ChevronRight, Activity, Brain, Rocket
 } from "lucide-react";
 import { useRef } from "react";
+import { useLanguage } from "@/context/LanguageContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Components
@@ -48,6 +49,7 @@ function StepItem({ title, desc, tag, last = false }: { title: string, desc: str
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
+    const { t } = useLanguage();
     const scrollRef = useRef(null);
     const { scrollYProgress } = useScroll({ target: scrollRef });
     const y = useTransform(scrollYProgress, [0, 1], [0, -100]);
@@ -69,26 +71,26 @@ export default function HomePage() {
                 >
                     <div className="inline-flex items-center gap-2 neon-badge mb-6 py-1.5 px-3">
                         <span className="w-2 h-2 rounded-full bg-neural-cyan animate-pulse shadow-[0_0_8px_#00F2FE]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-neural-cyan">The First AI Agent Mesh on Unichain</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-neural-cyan">{t.home.hero_badge}</span>
                     </div>
 
                     <h1 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.9]">
                         HookMind: <br />
                         <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-magenta to-neural-cyan">
-                            The Neural Yield Layer
+                            {t.home.hero_title.replace('HookMind: ', '')}
                         </span>
                     </h1>
 
                     <p className="text-lg md:text-xl text-gray-400 font-mono mb-10 max-w-2xl mx-auto leading-relaxed">
-                        Stop losing to impermanent loss and static yields. Deploy autonomous AI agents that control Uniswap v4 Hooks in real-time.
+                        {t.home.hero_desc}
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/dashboard" className="px-8 py-4 bg-neural-magenta text-black font-black rounded-2xl hover:scale-105 transition-all flex items-center gap-2 group shadow-[0_0_30px_rgba(252,114,255,0.4)]">
-                            Launch Protocol <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                            {t.common.launch_protocol} <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                         </Link>
                         <Link href="/docs" className="px-8 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all flex items-center gap-2">
-                            Read Docs <Terminal size={20} />
+                            {t.common.read_docs} <Terminal size={20} />
                         </Link>
                     </div>
                 </motion.div>
@@ -99,15 +101,15 @@ export default function HomePage() {
             {/* 2. THE PROBLEMS SECTION */}
             <section className="py-32 px-6 max-w-7xl mx-auto">
                 <div className="text-center mb-12 md:mb-20">
-                    <h2 className="text-3xl md:text-5xl font-black mb-4">LP Management is Broken</h2>
-                    <p className="text-gray-500 font-mono text-sm md:text-base px-4">Traditional Uniswap v4 pools face three critical inefficiencies.</p>
+                    <h2 className="text-3xl md:text-5xl font-black mb-4">{t.home.problem_title}</h2>
+                    <p className="text-gray-500 font-mono text-sm md:text-base px-4">{t.home.problem_subtitle}</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
                     {[
-                        { tag: "01", title: "Static Fees", desc: "Fees don't react to market volatility, leaving money on the table or scaring away swappers.", icon: Zap, color: "#FC72FF" },
-                        { tag: "02", title: "Impermanent Loss", desc: "No native protection against toxic order flow or massive price shifts at the hook layer.", icon: Shield, color: "#00F2FE" },
-                        { tag: "03", title: "Chaotic Yield", desc: "Fee distributions spike and crash, making liquidity provisioning a guessing game.", icon: TrendingUp, color: "var(--color-neural-green)" },
+                        { tag: "01", title: t.home.problem_1_title, desc: t.home.problem_1_desc, icon: Zap, color: "#FC72FF" },
+                        { tag: "02", title: t.home.problem_2_title, desc: t.home.problem_2_desc, icon: Shield, color: "#00F2FE" },
+                        { tag: "03", title: t.home.problem_3_title, desc: t.home.problem_3_desc, icon: Activity, color: "var(--color-neural-green)" },
                     ].map((item, i) => (
                         <div key={i} className="bg-white/5 border border-white/10 p-6 md:p-8 rounded-3xl relative overflow-hidden group">
                             <div className="text-5xl md:text-6xl font-black text-white/5 absolute -top-4 -right-2 transition-all group-hover:text-white/10 group-hover:scale-110">{item.tag}</div>
@@ -119,22 +121,24 @@ export default function HomePage() {
                 </div>
             </section>
 
-            {/* 3. FEATURES (Neural Ecosystem) */}
+            {/* 3. FEATURES (Swarm Ecosystem) */}
             <section className="py-32 relative bg-void/50">
                 <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-20 items-center">
                     <div>
                         <div className="inline-flex items-center gap-2 neon-badge mb-6 py-1.5 px-3">
                             <Rocket size={12} className="text-neural-magenta" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-neural-magenta">Core Features</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-neural-magenta">{t.home.features_badge}</span>
                         </div>
-                        <h2 className="text-3xl sm:text-4xl md:text-6xl font-black mb-8 leading-tight">Autonomous Yield <br /> <span className="text-neural-cyan">Optimization</span></h2>
+                        <h2 className="text-3xl sm:text-4xl md:text-6xl font-black mb-8 leading-tight">
+                            {t.home.features_title}
+                        </h2>
 
                         <div className="space-y-6">
                             {[
-                                { title: "Dynamic AI Fees", desc: "Agents monitor Unichain blocks every 12s, adjusting pool fees (500–10000 bps) based on real-time neural scores.", icon: Activity },
-                                { title: "Immutable Audit Mesh", desc: "Every AI decision is pinned to IPFS before execution. Fully auditable reasoning trail stored via Pinata CID.", icon: Layers },
-                                { title: "Native IL Insurance", desc: "When IL exposure spikes, agents auto-trigger insurance premium top-ups using Circle CCTP cross-chain feeds.", icon: Shield },
-                                { title: "ERC-4626 YieldVaults", desc: "Smoothed distributions over 7-day epochs. No more yield spikes, just consistent neural growth.", icon: Package },
+                                { title: t.home.feature_1_title, desc: t.home.feature_1_desc, icon: Activity },
+                                { title: t.home.feature_2_title, desc: t.home.feature_2_desc, icon: Layers },
+                                { title: t.home.feature_3_title, desc: t.home.feature_3_desc, icon: Shield },
+                                { title: t.home.feature_4_title, desc: t.home.feature_4_desc, icon: Package },
                             ].map((f, i) => (
                                 <motion.div key={i} whileHover={{ x: 10 }} className="flex gap-4 group cursor-default">
                                     <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0 border border-white/10 group-hover:border-neural-cyan/50 transition-colors">
@@ -164,7 +168,7 @@ export default function HomePage() {
                                             <div className="h-1.5 w-full bg-white/10 rounded" />
                                             <div className="h-1.5 w-2/3 bg-white/10 rounded" />
                                         </div>
-                                        <div className="text-[10px] font-mono text-neural-cyan">BLOCK {1420270 + i}</div>
+                                        <div className="text-[10px] font-mono text-neural-cyan text-xs">SWARM_SIGNAL_{1420 + i}</div>
                                     </div>
                                 ))}
                             </div>
@@ -182,25 +186,25 @@ export default function HomePage() {
             <section className="py-32 px-6 max-w-7xl mx-auto">
                 <div className="grid lg:grid-cols-2 gap-20">
                     <div>
-                        <h2 className="text-3xl md:text-4xl font-black mb-8">From Neural Signal <br /> to On-Chain Action</h2>
+                        <h2 className="text-3xl md:text-4xl font-black mb-8">{t.home.how_title}</h2>
                         <div className="space-y-2">
-                            <StepItem tag="01" title="Real-Time Data Extraction" desc="HookMind agents monitor the Unichain mempool and block logs every 12 seconds to calculate pool volatility." />
-                            <StepItem tag="02" title="Multi-Provider AI Reasoning" desc="Agents route data to a cluster of LLMs (Claude, GPT, Grok) to determine the optimal fee and IL protection state." />
-                            <StepItem tag="03" title="Immutable IPFS Audit" desc="Before any transaction, the reasoning is serialized into a JSON audit log and pinned to IPFS via Pinata." />
-                            <StepItem tag="04" title="ECDSA Block-Level Execution" desc="Agent signs the signal with its EOA private key. HookMindCore.sol validates the signature and updates the Uniswap v4 Hook." last />
+                            <StepItem tag="01" title={t.home.step_1_title} desc={t.home.step_1_desc} />
+                            <StepItem tag="02" title={t.home.step_2_title} desc={t.home.step_2_desc} />
+                            <StepItem tag="03" title={t.home.step_3_title} desc={t.home.step_3_desc} />
+                            <StepItem tag="04" title={t.home.step_4_title} desc={t.home.step_4_desc} last />
                         </div>
                     </div>
                     <div className="glass-card p-10 bg-neural-magenta/5 border border-neural-magenta/20 flex flex-col justify-center">
                         <Brain className="w-16 h-16 text-neural-magenta mb-8" />
-                        <h3 className="text-3xl font-black mb-4 italic">"The end of static liquidity."</h3>
+                        <h3 className="text-3xl font-black mb-4 italic">"{t.home.quote}"</h3>
                         <p className="text-gray-400 font-mono leading-relaxed mb-8">
-                            By decentralizing the decision-making process at the hook layer, HookMind transforms passive liquidity into an active, intelligent asset class. High volatility? Increase fees. Price drift? Activate IL protection. All automatically.
+                            {t.home.quote_desc}
                         </p>
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-white/20 border border-white/40" />
                             <div>
-                                <div className="font-bold text-white">HookMind Protocol</div>
-                                <div className="text-xs text-neural-cyan font-mono hover:underline cursor-pointer">View Verified Signals →</div>
+                                <div className="font-bold text-white">HookMind Swarm</div>
+                                <div className="text-xs text-neural-cyan font-mono hover:underline cursor-pointer">{t.home.verified_signals} →</div>
                             </div>
                         </div>
                     </div>
@@ -210,7 +214,7 @@ export default function HomePage() {
             {/* 5. TECH STACK & TOOLS */}
             <section className="py-32 bg-white/1">
                 <div className="max-w-7xl mx-auto px-6">
-                    <h2 className="text-3xl md:text-5xl font-black text-center mb-20 tracking-tighter">Powered by the Future <br /> of DeFi Infrastructure</h2>
+                    <h2 className="text-3xl md:text-5xl font-black text-center mb-20 tracking-tighter">{t.home.tech_title.split(' Future')[0]} <br /> {t.home.tech_title.split('the ')[1] || 'of DeFi Infrastructure'}</h2>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
                         {[
@@ -236,26 +240,26 @@ export default function HomePage() {
                         <div className="glass-card p-8 border-t-neural-magenta">
                             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                                 <Terminal size={20} className="text-neural-magenta" />
-                                Developer SDK
+                                {t.home.dev_sdk_title}
                             </h3>
-                            <p className="text-sm text-gray-500 font-mono mb-6">Build your own agent strategies. Direct access to neural scoring API and hook event streams.</p>
+                            <p className="text-sm text-gray-500 font-mono mb-6">{t.home.dev_sdk_desc}</p>
                             <code className="text-[10px] p-2 bg-black/40 border border-white/10 rounded block font-mono text-emerald-400">pnpm install @hookmind/sdk</code>
                         </div>
                         <div className="glass-card p-8 border-t-neural-cyan">
                             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                                 <Code2 size={20} className="text-neural-cyan" />
-                                MCP Tools
+                                {t.home.mcp_tools_title}
                             </h3>
-                            <p className="text-sm text-gray-500 font-mono mb-6">Integrate HookMind with LLMs like Claude or Cursor. Chat with your pool nodes directly.</p>
-                            <Link href="/docs?tab=mcp" className="text-xs font-bold text-neural-cyan flex items-center gap-1 group">Documentation <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" /></Link>
+                            <p className="text-sm text-gray-500 font-mono mb-6">{t.home.mcp_tools_desc}</p>
+                            <Link href="/docs?tab=mcp" className="text-xs font-bold text-neural-cyan flex items-center gap-1 group">{t.nav.docs} <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" /></Link>
                         </div>
                         <div className="glass-card p-8 border-t-neural-magenta">
                             <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                                 <Activity size={20} className="text-neural-magenta" />
-                                Neural UI
+                                {t.home.neural_ui_title}
                             </h3>
-                            <p className="text-sm text-gray-500 font-mono mb-6">GPGPU-powered dashboard monitoring 50,000+ real-time particles of pool data flow.</p>
-                            <Link href="/dashboard" className="text-xs font-bold text-neural-magenta flex items-center gap-1 group">Enter Dashboard <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" /></Link>
+                            <p className="text-sm text-gray-500 font-mono mb-6">{t.home.neural_ui_desc}</p>
+                            <Link href="/dashboard" className="text-xs font-bold text-neural-magenta flex items-center gap-1 group">{t.nav.dashboard} <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" /></Link>
                         </div>
                     </div>
                 </div>
@@ -268,25 +272,25 @@ export default function HomePage() {
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 -z-10" />
 
                     <h2 className="text-4xl md:text-6xl font-black mb-8 tracking-tighter underline decoration-neural-magenta/30 underline-offset-8">
-                        Join the Yield Revolution
+                        {t.home.cta_title}
                     </h2>
                     <p className="text-gray-400 text-lg md:text-xl font-mono mb-12 max-w-2xl mx-auto leading-relaxed">
-                        Don't just provide liquidity. Provide intelligence. Launch your first HookMind agent on Unichain Sepolia today.
+                        {t.home.cta_desc}
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-6 justify-center">
                         <Link href="/dashboard?autostart=true" className="px-12 py-5 bg-white text-black font-black rounded-2xl hover:scale-105 transition-all text-lg shadow-[0_0_30px_rgba(255,255,255,0.3)]">
-                            Deploy AI Agent
+                            {t.common.deploy_ai_agent}
                         </Link>
                         <Link href="/leaderboard" className="px-12 py-5 bg-void border border-white/20 text-white font-black rounded-2xl hover:bg-white/5 transition-all text-lg">
-                            View Rankings
+                            {t.common.view_rankings}
                         </Link>
                     </div>
 
                     <div className="mt-16 flex items-center justify-center gap-8 text-[10px] font-mono text-gray-600 uppercase tracking-widest">
-                        <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-neural-green" /> Unichain Ready</div>
-                        <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-neural-green" /> Uniswap v4 Hook</div>
-                        <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-neural-green" /> Open Source</div>
+                        <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-neural-green" /> {t.home.unichain_ready}</div>
+                        <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-neural-green" /> {t.home.v4_hook}</div>
+                        <div className="flex items-center gap-2"><CheckCircle2 size={12} className="text-neural-green" /> {t.home.open_source}</div>
                     </div>
                 </div>
             </section>

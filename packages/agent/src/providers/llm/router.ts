@@ -35,6 +35,7 @@ export class LLMRouter {
             case "gemini": return this._queryGemini(params);
             case "grok": return this._queryGrok(params);
             case "ollama": return this._queryOllama(params);
+            case "mock": return this._queryMock(params);
             default: return this._queryAnthropic(params);
         }
     }
@@ -116,6 +117,16 @@ export class LLMRouter {
         const data = await res.json() as any;
         return this._parseDecision(data.response ?? "{}");
     }
+    // ── Mock (Test / Demo) ──────────────────────────────────────────────────
+    private async _queryMock(params: QueryParams): Promise<LLMDecision> {
+        log.info("Using Neural Mock for demo mode...");
+        return {
+            feeBps: 4500,
+            activateIL: true,
+            reasoning: "MOCK: Detected high variance, raising fees to capture volatility premium."
+        };
+    }
+
     // ── Parser ───────────────────────────────────────────────────────────────
     private _parseDecision(raw: string): LLMDecision {
         try {

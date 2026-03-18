@@ -1,149 +1,154 @@
-"use client";
-import { useState } from "react";
+'use client';
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Shield, TrendingUp, Clock, DollarSign, Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Shield, TrendingUp, Clock, DollarSign, Zap, Activity, CheckCircle2, Globe, Cpu } from "lucide-react";
 import {
     LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, CartesianGrid,
 } from "recharts";
 import { toast } from "sonner";
+import { useHookMind } from "@/hooks/useHookMind";
+import { useAccount } from "wagmi";
+import { useLanguage } from "@/context/LanguageContext";
 
-// ── Synthetic epoch drip data ──────────────────────────────────────────────
-const generateDripData = () => {
+// ── Synthetic signal volume data ──────────────────────────────────────────────
+const generateSignalData = () => {
     const data = [];
-    let accrued = 0;
-    let claimable = 0;
+    let volume = 5000;
     for (let d = 0; d < 7; d++) {
-        for (let h = 0; h < 24; h += 6) {
-            accrued += Math.random() * 800 + 200;
-            claimable = accrued * ((d * 24 + h) / 168);
+        for (let h = 0; h < 24; h += 4) {
+            volume += Math.random() * 1200 - 400;
             data.push({
                 label: `D${d + 1} ${h}:00`,
-                accrued: Math.round(accrued),
-                claimable: Math.round(claimable),
+                volume: Math.round(volume),
+                consensus: Math.round(volume * (0.85 + Math.random() * 0.1)),
             });
         }
     }
     return data;
 };
 
-const DRIP_DATA = generateDripData();
+const SIGNAL_DATA = generateSignalData();
 
-// ── IL Gauge ───────────────────────────────────────────────────────────────
-function ILGauge({ pct }: { pct: number }) {
-    const stroke = pct > 3 ? "#FF3366" : pct > 1.5 ? "#EAB308" : "#00FFA3";
-    const r = 52;
-    const circ = 2 * Math.PI * r;
-    const offset = circ * (1 - Math.min(pct, 5) / 5);
+// ── Registry Node Status ──────────────────────────────────────────────────
+function NodeStatus({ active }: { active: boolean }) {
+    const color = active ? "#00FFA3" : "#FC72FF";
     return (
-        <div className="relative w-36 h-36 mx-auto">
-            <svg width="150" height="150" viewBox="0 0 150 150" className="-rotate-90">
-                <circle cx="75" cy="75" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="10" />
-                <circle
-                    cx="75" cy="75" r={r} fill="none"
-                    stroke={stroke}
-                    strokeWidth="10"
-                    strokeDasharray={circ}
-                    strokeDashoffset={offset}
-                    strokeLinecap="round"
-                    style={{ filter: `drop-shadow(0 0 8px ${stroke})`, transition: "stroke-dashoffset 0.8s ease" }}
-                />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-2xl font-black font-mono" style={{ color: stroke }}>{pct.toFixed(2)}%</div>
-                <div className="text-xs text-gray-600 font-mono">IL EXPOSURE</div>
+        <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div className="relative">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all duration-500`} style={{ borderColor: `${color}40`, backgroundColor: `${color}10` }}>
+                    <Cpu className="w-6 h-6" style={{ color }} />
+                </div>
+                {active && <span className="absolute -top-1 -right-1 w-3 h-3 bg-neural-green rounded-full animate-pulse shadow-[0_0_100px_#00FFA3]" />}
+            </div>
+            <div>
+                <div className="text-[10px] text-gray-500 font-mono tracking-widest uppercase mb-1">Node Status</div>
+                <div className={`text-lg font-black tracking-tighter italic uppercase`} style={{ color }}>
+                    {active ? "Registry Active" : "Activation Required"}
+                </div>
             </div>
         </div>
     );
 }
 
-export default function VaultPage() {
-    const [enrolling, setEnrolling] = useState(false);
-    const [enrolled, setEnrolled] = useState(false);
-    const ilPct = 2.31; // Mocked live from SDK
+export default function RegistryPage() {
+    const { isConnected } = useAccount();
+    const { payInsurancePremium } = useHookMind(); // Reuse for 10 MXN fee
+    const { t, language } = useLanguage();
+    const [activating, setActivating] = useState(false);
+    const [active, setActive] = useState(false);
 
-    const handleEnroll = async () => {
-        setEnrolling(true);
-        toast.loading("Awaiting approve USDC (10 USDC premium)...", { id: "enroll" });
-        await new Promise((r) => setTimeout(r, 1200));
-        toast.loading("Submitting payPremium() on-chain...", { id: "enroll" });
-        await new Promise((r) => setTimeout(r, 1500));
-        toast.success("IL Insurance activated! Your LP position is protected.", { id: "enroll" });
-        setEnrolled(true);
-        setEnrolling(false);
+    const handleActivate = async () => {
+        if (!isConnected) {
+            toast.error(t.vault.toast_connect || "Please connect wallet");
+            return;
+        }
+
+        setActivating(true);
+        try {
+            // Mocking the 10 MXN fee payment
+            toast.loading(t.agents.connect_title || "Activating Registry Node...", { id: "activate" });
+            await new Promise(r => setTimeout(r, 2000));
+            toast.success("Node Successfully Registered on Unichain!", { id: "activate" });
+            setActive(true);
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || "Activation failed", { id: "activate" });
+        } finally {
+            setActivating(false);
+        }
     };
 
-    const handleClaim = () => {
-        toast.loading("Simulating Flash Accounting — estimating claimable yield...", { id: "claim" });
-        setTimeout(() => toast.success("Yield claim submitted! Receiving ~1,240 USDC from epoch drip.", { id: "claim" }), 2000);
-    };
+    const registryStats = useMemo(() => [
+        { label: "P2P Swarm Volume (24h)", value: "142,820", icon: Activity, color: "#FC72FF" },
+        { label: "Collective Neural Consensus", value: "98.4%", icon: Zap, color: "#00F2FE" },
+        { label: t.nav.registry, value: "100 CELO", icon: DollarSign, color: "text-amber-400" },
+        { label: "Active Network Nodes", value: "8,247", icon: Globe, color: "#00FFA3" },
+    ], []);
 
     return (
         <div className="pt-20 px-5 max-w-7xl mx-auto pb-16">
             {/* Header */}
             <div className="pt-8 mb-10">
                 <div className="inline-flex items-center gap-2 neon-badge mb-4">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neural-cyan animate-pulse" />
-                    YIELD & INSURANCE
+                    <span className="w-1.5 h-1.5 rounded-full bg-neural-magenta animate-pulse" />
+                    Agent Registry & P2P Swarm
                 </div>
                 <h1 className="text-3xl sm:text-5xl font-black tracking-tighter mb-3">
-                    Yield{" "}
-                    <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-cyan to-neural-magenta">
-                        Vault
-                    </span>{" "}
-                    & IL Shield
+                    Activate Your <br className="sm:hidden" />
+                    <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-magenta to-neural-cyan">
+                        Neural Hub
+                    </span>
                 </h1>
-                <p className="text-gray-500 max-w-2xl">
-                    Swap fees smooth over 7-day epochs via ERC-4626. Enroll your LP position in IL insurance for 10 USDC premium — protected up to 500 USDC.
+                <p className="text-gray-500 max-w-2xl font-mono text-sm leading-relaxed">
+                    HookMind's Agent Registry is the primary gateway for Unichain node operators. 
+                    Join the P2P swarm intelligence layer and start contributing to scalable signal volume.
                 </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-                {/* ── YieldVault Panel (3 cols) ─────────────────────── */}
+                {/* ── Signal Volume Panel (3 cols) ─────────────────────── */}
                 <div className="lg:col-span-3 glass-card p-6 space-y-6">
                     <div className="flex justify-between items-center">
                         <h2 className="font-bold text-lg flex items-center gap-2">
                             <TrendingUp className="w-5 h-5 text-neural-cyan" />
-                            ERC-4626 Epoch Drip
+                            Swarm Signal Metrics
                         </h2>
-                        <span className="neon-badge text-[10px]">EPOCH 14 · 3d 12h LEFT</span>
+                        <span className="neon-badge text-[10px] text-neural-green">
+                            NETWORK STATUS: SYNCED
+                        </span>
                     </div>
 
-                    {/* Accrued vs Claimable Chart */}
+                    {/* Signal Volume Chart */}
                     <div className="h-48">
                         <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={DRIP_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+                            <AreaChart data={SIGNAL_DATA} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                                 <defs>
-                                    <linearGradient id="gradAccrued" x1="0" y1="0" x2="0" y2="1">
+                                    <linearGradient id="gradVolume" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="0%" stopColor="#FC72FF" stopOpacity={0.3} />
                                         <stop offset="100%" stopColor="#FC72FF" stopOpacity={0} />
                                     </linearGradient>
-                                    <linearGradient id="gradClaimable" x1="0" y1="0" x2="0" y2="1">
+                                    <linearGradient id="gradConsensus" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="0%" stopColor="#00F2FE" stopOpacity={0.3} />
                                         <stop offset="100%" stopColor="#00F2FE" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                                 <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
-                                <XAxis dataKey="label" tick={{ fontSize: 9 }} stroke="rgba(255,255,255,0.1)" tickLine={false} interval={3} />
+                                <XAxis dataKey="label" tick={{ fontSize: 9 }} stroke="rgba(255,255,255,0.1)" tickLine={false} interval={6} />
                                 <YAxis stroke="rgba(255,255,255,0.1)" tickLine={false} tick={{ fontSize: 9 }} />
                                 <Tooltip
                                     contentStyle={{ background: "rgba(8,8,18,0.95)", border: "1px solid rgba(252,114,255,0.3)", borderRadius: 10, fontSize: 11, fontFamily: "JetBrains Mono" }}
-                                    formatter={(v: any) => [`${v.toLocaleString()} USDC`]}
+                                    formatter={(v: any) => [`${v.toLocaleString()} Signals`]}
                                 />
-                                <Area type="monotone" dataKey="accrued" stroke="#FC72FF" fill="url(#gradAccrued)" strokeWidth={2} name="Accrued" />
-                                <Area type="monotone" dataKey="claimable" stroke="#00F2FE" fill="url(#gradClaimable)" strokeWidth={2} name="Claimable" />
+                                <Area type="monotone" dataKey="volume" stroke="#FC72FF" fill="url(#gradVolume)" strokeWidth={2} name="Total Signals" />
+                                <Area type="monotone" dataKey="consensus" stroke="#00F2FE" fill="url(#gradConsensus)" strokeWidth={2} name="Valid Consensus" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
 
                     {/* Stats */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {[
-                            { label: "Total Accrued This Epoch", value: "4,820 USDC", icon: DollarSign, color: "#FC72FF" },
-                            { label: "Claimable Now (51% done)", value: "2,458 USDC", icon: Zap, color: "#00F2FE" },
-                            { label: "Drip Rate / second", value: "0.00039 USDC", icon: Clock, color: "#A78BFA" },
-                            { label: "Total Depositors", value: "247 LPs", icon: Shield, color: "#00FFA3" },
-                        ].map(({ label, value, icon: Icon, color }) => (
-                            <div key={label} className="bg-black/30 rounded-xl p-4 flex items-center gap-3">
+                        {registryStats.map(({ label, value, icon: Icon, color }) => (
+                            <div key={label} className="bg-white/3 rounded-xl p-4 flex items-center gap-3 border border-white/5 group hover:border-white/10 transition-colors">
                                 <div className="p-2 rounded-lg shrink-0" style={{ background: `${color}15` }}>
                                     <Icon className="w-4 h-4" style={{ color }} />
                                 </div>
@@ -156,70 +161,74 @@ export default function VaultPage() {
                     </div>
 
                     <motion.button
-                        whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(0,242,254,0.3)" }}
+                        whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(252,114,255,0.3)" }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={handleClaim}
-                        className="w-full py-3.5 rounded-xl font-bold text-sm btn-primary"
+                        onClick={() => window.location.href = '/leaderboard'}
+                        className="w-full py-4 rounded-xl font-black italic uppercase tracking-widest text-sm bg-neural-magenta text-black shadow-[0_0_20px_rgba(252,114,255,0.2)]"
                     >
-                        Claim Yield (2,458 USDC)
+                        View Collective Intelligence Ranking →
                     </motion.button>
                 </div>
 
-                {/* ── IL Insurance Panel (2 cols) ───────────────────── */}
-                <div className="lg:col-span-2 glass-card p-6 flex flex-col gap-5">
-                    <h2 className="font-bold text-lg flex items-center gap-2">
-                        <Shield className="w-5 h-5 text-neural-magenta" />
-                        IL Insurance Pool
-                    </h2>
+                {/* ── Node Activation Panel (2 cols) ───────────────────── */}
+                <div className="lg:col-span-2 flex flex-col gap-5">
+                    <NodeStatus active={active} />
 
-                    {/* Live IL Gauge */}
-                    <ILGauge pct={ilPct} />
+                    <div className="glass-card p-6 flex flex-col gap-5 flex-1 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-neural-cyan/10 blur-[60px] -z-10 group-hover:bg-neural-cyan/20 transition-all" />
+                        
+                        <h2 className="font-bold text-lg flex items-center gap-2">
+                            <Shield className="w-5 h-5 text-neural-cyan" />
+                            Registry Gateway
+                        </h2>
 
-                    {/* Info Box */}
-                    <div
-                        className="rounded-xl p-4 text-sm leading-relaxed"
-                        style={{ background: "rgba(252,114,255,0.06)", border: "1px solid rgba(252,114,255,0.2)" }}
-                    >
-                        Pay a <strong className="text-white">10 USDC premium</strong> to activate insurance.
-                        If your LP exits with IL &gt; <strong className="text-white">2%</strong>, the pool auto-compensates up to{" "}
-                        <strong className="text-white">500 USDC</strong> via Circle CCTP v2.
-                    </div>
+                        <div className="p-4 rounded-xl bg-neural-cyan/5 border border-neural-cyan/20 text-sm font-mono leading-relaxed text-gray-400">
+                             To start processing <strong className="text-white">P2P Swarm Signals</strong>, each node must pay a one-time activation fee. 
+                             This ensures network stability and a sustainable <strong className="text-white">Revenue First</strong> model.
+                        </div>
 
-                    {/* Pool stats */}
-                    <div className="space-y-2.5">
-                        {[
-                            { label: "Pool Balance (USDC)", value: "82,400" },
-                            { label: "Active Enrollments", value: "611" },
-                            { label: "IL Threshold", value: "2.00%" },
-                            { label: "Max Payout / LP", value: "500 USDC" },
-                        ].map(({ label, value }) => (
-                            <div key={label} className="flex justify-between text-sm">
-                                <span className="text-gray-500 font-mono">{label}</span>
-                                <span className="font-bold text-white font-mono">{value}</span>
+                        <div className="space-y-4 my-4">
+                            <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                                <span className="text-gray-500 font-mono uppercase tracking-tighter">Activation Fee</span>
+                                <span className="font-black text-white font-mono">10.00 MXN</span>
                             </div>
-                        ))}
-                    </div>
+                            <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                                <span className="text-gray-500 font-mono uppercase tracking-tighter">Network Access</span>
+                                <span className="font-black text-white font-mono">Unlimited P2P</span>
+                            </div>
+                            <div className="flex justify-between items-center text-sm border-b border-white/5 pb-2">
+                                <span className="text-gray-500 font-mono uppercase tracking-tighter">Consensus Weight</span>
+                                <span className="font-black text-neural-cyan font-mono">1.0X Base</span>
+                            </div>
+                        </div>
 
-                    <motion.button
-                        whileHover={{ scale: 1.02, boxShadow: "0 0 30px rgba(252,114,255,0.5)" }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleEnroll}
-                        disabled={enrolling || enrolled}
-                        className="w-full py-3.5 rounded-xl font-bold text-sm mt-auto flex items-center justify-center gap-2"
-                        style={
-                            enrolled
-                                ? { background: "rgba(0,255,163,0.15)", border: "1px solid rgba(0,255,163,0.4)", color: "#00FFA3" }
-                                : { background: "linear-gradient(135deg, #FC72FF, #00F2FE)", color: "#000", opacity: enrolling ? 0.7 : 1 }
-                        }
-                    >
-                        {enrolled ? (
-                            <><CheckCircle2 className="w-4 h-4" /> Protected — LP Enrolled</>
-                        ) : enrolling ? (
-                            <><div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" /> Enrolling...</>
-                        ) : (
-                            <><Shield className="w-4 h-4" /> Pay Premium & Enroll (10 USDC)</>
+                        <motion.button
+                            whileHover={{ scale: 1.02, boxShadow: active ? "none" : "0 0 40px rgba(0,242,254,0.4)" }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={handleActivate}
+                            disabled={activating || active}
+                            className="w-full py-4 rounded-xl font-black italic uppercase tracking-widest text-sm mt-auto flex items-center justify-center gap-2 transition-all"
+                            style={
+                                active
+                                    ? { background: "rgba(0,255,163,0.1)", border: "1px solid rgba(0,255,163,0.3)", color: "#00FFA3" }
+                                    : { background: "linear-gradient(135deg, #FC72FF, #00F2FE)", color: "#000", opacity: activating ? 0.7 : 1 }
+                            }
+                        >
+                            {active ? (
+                                <><CheckCircle2 className="w-4 h-4" /> Node Registry Verified</>
+                            ) : activating ? (
+                                <><div className="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin" /> Finalizing...</>
+                            ) : (
+                                <><Zap className="w-4 h-4" /> Activate Node (10 MXN)</>
+                            )}
+                        </motion.button>
+                        
+                        {!active && (
+                            <p className="text-[10px] text-center text-gray-600 font-mono uppercase tracking-widest mt-2">
+                                Requires Unichain Sepolia Connection
+                            </p>
                         )}
-                    </motion.button>
+                    </div>
                 </div>
             </div>
         </div>

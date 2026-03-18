@@ -31,7 +31,7 @@ contract HookMindCoreTest is Test, Deployers {
         // Deploy Uniswap v4 PoolManager via Deployers helper
         deployFreshManagerAndRouters();
         usdc     = new MockERC20("USDC", "USDC", 6);
-        registry = new AgentRegistry(admin);
+        registry = new AgentRegistry(admin, address(usdc), admin); // added token and treasury
         // Deploy hook at address with correct flags using HookMiner pattern
         uint160 flags = uint160(
             Hooks.AFTER_INITIALIZE_FLAG |
@@ -42,15 +42,17 @@ contract HookMindCoreTest is Test, Deployers {
         );
         address hookAddr = address(flags); // simplified for test environment
         vault     = new YieldVault(usdc, hookAddr, admin);
-        insurance = new ILInsurance(usdc, hookAddr);
+        insurance = new ILInsurance(usdc, hookAddr, admin);
         // Deploy hook via create2 at the exact mined address
         deployCodeTo("HookMindCore.sol", abi.encode(
-            manager, registry, vault, insurance, admin
+            manager, registry, vault, insurance, admin, admin
         ), hookAddr);
         hook = HookMindCore(hookAddr);
         // Register agent with ECDSA key
+        vm.deal(admin, 1 ether);
         vm.prank(admin);
-        registry.registerAgent(vm.addr(agentKey), "anthropic");
+        uint256 activationFeeEther = registry.activationFeeNative();
+        registry.registerAgent{value: activationFeeEther}(vm.addr(agentKey), "anthropic", 100 * 10**6);
         // Initialize a pool with the hook
         (poolKey,) = initPool(
             CurrencyLibrary.ADDRESS_ZERO,

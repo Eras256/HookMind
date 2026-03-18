@@ -1,5 +1,5 @@
-"use client";
-import { useState, useCallback, useRef } from "react";
+'use client';
+import { useState, useCallback, useRef, useMemo } from "react";
 import {
     ReactFlow, MiniMap, Controls, Background, useNodesState,
     useEdgesState, addEdge, Connection, Edge, Panel, useReactFlow, ReactFlowProvider
@@ -11,53 +11,7 @@ import { Save, Copy, ChevronRight, Brain, Zap, Activity, PlusCircle, MinusCircle
 import { useWriteContract, useReadContract } from "wagmi";
 import { parseUnits } from "viem";
 import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
-
-const HOOK_NODE_TEMPLATES = [
-    {
-        category: "HOOK TRIGGERS", gradient: "from-cyan-500 to-blue-600", accentColor: "#00F2FE",
-        items: [
-            { type: "trigger", label: "BEFORE_SWAP", icon: Zap, desc: "Fires before every Unichain swap" },
-            { type: "trigger", label: "AFTER_SWAP", icon: Activity, desc: "Fires after swap completes" },
-            { type: "trigger", label: "LIQUIDITY_ADD", icon: PlusCircle, desc: "On LP position creation" },
-            { type: "trigger", label: "LIQUIDITY_REMOVE", icon: MinusCircle, desc: "On LP withdrawal" },
-            { type: "trigger", label: "BLOCK_TICK", icon: Clock, desc: "Every ~1s Unichain block" },
-        ],
-    },
-    {
-        category: "SENSORS & ORACLES", gradient: "from-purple-500 to-indigo-600", accentColor: "#A78BFA",
-        items: [
-            { type: "sensor", label: "VOLATILITY_SCORE", icon: TrendingUp, desc: "Computes 0-10000 vol score" },
-            { type: "sensor", label: "IL_EXPOSURE", icon: Shield, desc: "Calculates √(P1/P0) IL risk" },
-            { type: "sensor", label: "PYTH_PRICE_FEED", icon: Radio, desc: "Sub-second price data" },
-            { type: "sensor", label: "MEMPOOL_SCAN", icon: Search, desc: "Pending tx analysis" },
-        ],
-    },
-    {
-        category: "AI BRAIN", gradient: "from-[#FC72FF] to-purple-600", accentColor: "#FC72FF",
-        items: [
-            { type: "ai", label: "CLAUDE_4.6", icon: Cpu, desc: "Best for complex reasoning" },
-            { type: "ai", label: "GPT_4O", icon: Cpu, desc: "Fast inference" },
-            { type: "ai", label: "LOCAL_DEEPSEEK", icon: Lock, desc: "Private, air-gapped" },
-        ],
-    },
-    {
-        category: "HOOK ACTIONS", gradient: "from-emerald-500 to-green-600", accentColor: "#00FFA3",
-        items: [
-            { type: "action", label: "SET_DYNAMIC_FEE", icon: Sliders, desc: "Calls submitAgentSignal() on-chain" },
-            { type: "action", label: "TRIGGER_IL_INSURANCE", icon: Shield, desc: "Pays CCTP premium for LP" },
-            { type: "action", label: "INJECT_VAULT_FEES", icon: Database, desc: "Routes fees to YieldVault" },
-            { type: "action", label: "PAUSE_POOL", icon: PauseCircle, desc: "Emergency pool suspension" },
-        ],
-    },
-    {
-        category: "AUDIT & ALERTS", gradient: "from-orange-500 to-red-500", accentColor: "#FB923C",
-        items: [
-            { type: "audit", label: "IPFS_PIN", icon: Pin, desc: "Saves decision to Pinata IPFS" },
-            { type: "audit", label: "TELEGRAM_NOTIFY", icon: MessageSquare, desc: "Sends Telegram alert" },
-            { type: "audit", label: "ECDSA_SIGN", icon: KeyRound, desc: "Signs tx with agent EOA" },
-        ],
-    },
-];
+import { useLanguage } from "@/context/LanguageContext";
 
 const NODE_STYLE: Record<string, { bg: string; border: string; glow: string }> = {
     trigger: { bg: "rgba(0,242,254,0.08)", border: "rgba(0,242,254,0.5)", glow: "0 0 20px rgba(0,242,254,0.2)" },
@@ -98,12 +52,60 @@ export default function BuilderPage() {
 }
 
 function BuilderContent() {
+    const { t } = useLanguage();
     const reactFlowWrapper = useRef<HTMLDivElement>(null);
     const { screenToFlowPosition } = useReactFlow();
     const [nodes, setNodes, onNodesChange] = useNodesState(INITIAL_NODES as any);
     const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
-    const [stratName, setStratName] = useState("My Custom Hook Strategy");
+    const [stratName, setStratName] = useState(t.builder.default_strat_name);
     const [isDeploying, setIsDeploying] = useState(false);
+
+    const hookNodeTemplates = useMemo(() => [
+        {
+            category: t.builder.categories.triggers, gradient: "from-cyan-500 to-blue-600", accentColor: "#00F2FE",
+            items: [
+                { type: "trigger", label: "BEFORE_SWAP", icon: Zap, desc: t.builder.descriptions.before_swap },
+                { type: "trigger", label: "AFTER_SWAP", icon: Activity, desc: t.builder.descriptions.after_swap },
+                { type: "trigger", label: "LIQUIDITY_ADD", icon: PlusCircle, desc: t.builder.descriptions.liquidity_add },
+                { type: "trigger", label: "LIQUIDITY_REMOVE", icon: MinusCircle, desc: t.builder.descriptions.liquidity_remove },
+                { type: "trigger", label: "BLOCK_TICK", icon: Clock, desc: t.builder.descriptions.block_tick },
+            ],
+        },
+        {
+            category: t.builder.categories.sensors, gradient: "from-purple-500 to-indigo-600", accentColor: "#A78BFA",
+            items: [
+                { type: "sensor", label: "VOLATILITY_SCORE", icon: TrendingUp, desc: t.builder.descriptions.volatility_score },
+                { type: "sensor", label: "IL_EXPOSURE", icon: Shield, desc: t.builder.descriptions.il_exposure },
+                { type: "sensor", label: "PYTH_PRICE_FEED", icon: Radio, desc: t.builder.descriptions.pyth_price },
+                { type: "sensor", label: "MEMPOOL_SCAN", icon: Search, desc: t.builder.descriptions.mempool_scan },
+            ],
+        },
+        {
+            category: t.builder.categories.ai, gradient: "from-[#FC72FF] to-purple-600", accentColor: "#FC72FF",
+            items: [
+                { type: "ai", label: "CLAUDE_4.6", icon: Cpu, desc: t.builder.descriptions.claude },
+                { type: "ai", label: "GPT_4O", icon: Cpu, desc: t.builder.descriptions.gpt },
+                { type: "ai", label: "LOCAL_DEEPSEEK", icon: Lock, desc: t.builder.descriptions.local_ai },
+            ],
+        },
+        {
+            category: t.builder.categories.actions, gradient: "from-emerald-500 to-green-600", accentColor: "#00FFA3",
+            items: [
+                { type: "action", label: "SET_DYNAMIC_FEE", icon: Sliders, desc: t.builder.descriptions.set_fee },
+                { type: "action", label: "TRIGGER_IL_INSURANCE", icon: Shield, desc: t.builder.descriptions.trigger_il },
+                { type: "action", label: "INJECT_VAULT_FEES", icon: Database, desc: t.builder.descriptions.inject_vault },
+                { type: "action", label: "PAUSE_POOL", icon: PauseCircle, desc: t.builder.descriptions.pause_pool },
+            ],
+        },
+        {
+            category: t.builder.categories.audit, gradient: "from-orange-500 to-red-500", accentColor: "#FB923C",
+            items: [
+                { type: "audit", label: "IPFS_PIN", icon: Pin, desc: t.builder.descriptions.ipfs_pin },
+                { type: "audit", label: "TELEGRAM_NOTIFY", icon: MessageSquare, desc: t.builder.descriptions.tg_notify },
+                { type: "audit", label: "ECDSA_SIGN", icon: KeyRound, desc: t.builder.descriptions.ecdsa_sign },
+            ],
+        },
+    ], [t]);
 
     const { data: activationFeeNative } = useReadContract({
         address: AGENT_REGISTRY_ADDRESS,
@@ -179,7 +181,6 @@ function BuilderContent() {
     );
 
     const exportJSON = () => {
-        const triggers = nodes.filter((n) => (mkStyle((n as any).nodeType ?? "trigger") && (n.data as any).label?.includes("BEFORE") || (n.data as any).label?.includes("TICK") || (n.data as any).label?.includes("AFTER") || (n.data as any).label?.includes("LIQUIDITY"))).map((n) => (n.data as any).label);
         const config = {
             version: "1.0",
             strategy_name: stratName,
@@ -196,36 +197,35 @@ function BuilderContent() {
         a.download = `hookmind-strategy-${Date.now()}.json`;
         a.click();
         URL.revokeObjectURL(url);
-        toast.success("Strategy exported! Drop the JSON into your agent config.");
+        toast.success(t.builder.export_success);
     };
 
     const deployStrategy = async () => {
         const fee = activationFeeNative ? (activationFeeNative as any) : parseUnits("0.0015", 18);
         setIsDeploying(true);
-        toast.loading("Deploying Custom Strategy to Unichain...", { id: "deploy-builder" });
+        toast.loading(t.builder.deploying_toast, { id: "deploy-builder" });
         
         try {
             const tx = await writeContractAsync({
                 address: AGENT_REGISTRY_ADDRESS,
                 abi: AGENT_REGISTRY_ABI as any,
                 functionName: 'registerAgent',
-                // Using Burner address simulating Custom Agent Generation, and applying the custom Strategy/Agent name
-                args: [`0x${Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('')}`, stratName || "My Custom Hook Strategy", parseUnits("150", 6)], 
+                args: [`0x${Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('')}`, stratName || t.builder.default_strat_name, parseUnits("150", 6)], 
                 value: fee as any,
             } as any);
 
-            toast.custom((t) => (
+            toast.custom((to) => (
                 <div className="bg-[#0f0f0f] border border-neural-magenta/40 rounded-xl p-4 w-full min-w-[300px] shadow-[0_0_25px_rgba(252,114,255,0.25)] flex flex-col gap-2 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1/2 h-px bg-linear-to-r from-transparent via-neural-magenta to-transparent opacity-50" />
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Zap size={16} className="text-neural-magenta animate-pulse" />
-                            <span className="font-black text-white tracking-tight">Strategy Deployed</span>
+                            <span className="font-black text-white tracking-tight">{t.builder.strategy_deployed}</span>
                         </div>
-                        <button onClick={() => toast.dismiss(t)} className="text-gray-500 hover:text-white transition-colors"><X size={14}/></button>
+                        <button onClick={() => toast.dismiss(to)} className="text-gray-500 hover:text-white transition-colors"><X size={14}/></button>
                     </div>
                     <p className="text-[11px] text-gray-400 font-mono leading-relaxed">
-                        Custom Hook Strategy deployed via Unichain.
+                        {t.builder.deployed_desc}
                     </p>
                     <a 
                         href={`https://unichain-sepolia.blockscout.com/tx/${tx}`} 
@@ -233,14 +233,14 @@ function BuilderContent() {
                         rel="noopener noreferrer"
                         className="mt-2 text-[11px] font-mono font-bold text-neural-magenta border border-neural-magenta/30 hover:bg-neural-magenta/10 hover:text-white px-3 py-2 rounded-lg flex items-center justify-between transition-all group"
                     >
-                        <span>View on Blockscout</span>
+                        <span>{t.builder.view_blockscout}</span>
                         <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
                     </a>
                 </div>
             ), { id: "deploy-builder", duration: 15000 });
 
         } catch (e: any) {
-            toast.error(e.message || "Deployment failed", { id: "deploy-builder" });
+            toast.error(e.message || t.builder.deployment_failed, { id: "deploy-builder" });
         } finally {
             setIsDeploying(false);
         }
@@ -254,28 +254,28 @@ function BuilderContent() {
                     <Brain size={26} className="text-neural-magenta" style={{ filter: "drop-shadow(0 0 8px rgba(252,114,255,0.8))" }} />
                     <div>
                         <h1 className="text-2xl font-black tracking-tighter">
-                            Visual Hook{" "}
+                            {t.builder.title}{" "}
                             <span className="text-transparent bg-clip-text" style={{ backgroundImage: "linear-gradient(135deg,#FC72FF,#00F2FE)" }}>
-                                Builder
+                                {t.builder.subtitle}
                             </span>
                         </h1>
                         <input
                             value={stratName}
                             onChange={(e) => setStratName(e.target.value)}
                             className="text-xs text-gray-500 bg-transparent border-none outline-none font-mono w-72"
-                            placeholder="Strategy name..."
+                            placeholder={t.builder.strat_name_placeholder}
                         />
                     </div>
                 </div>
                 <div className="flex gap-2">
-                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => { setNodes(INITIAL_NODES as any); setEdges(INITIAL_EDGES); toast.info("Canvas reset to template."); }} className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm text-red-500/70 border-red-500/20">
-                        <X size={14} /> Reset
+                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={() => { setNodes(INITIAL_NODES as any); setEdges(INITIAL_EDGES); toast.info(t.builder.canvas_reset); }} className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm text-red-500/70 border-red-500/20">
+                        <X size={14} /> {t.builder.reset}
                     </motion.button>
                     <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={exportJSON} className="btn-ghost flex items-center gap-2 px-4 py-2 text-sm">
-                        <Copy size={14} /> Export JSON
+                        <Copy size={14} /> {t.builder.export_json}
                     </motion.button>
                     <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} onClick={deployStrategy} className="btn-primary flex items-center gap-2 px-5 py-2 text-sm">
-                        <Save size={14} /> Deploy Strategy
+                        <Save size={14} /> {t.builder.deploy_strategy}
                     </motion.button>
                 </div>
             </div>
@@ -284,7 +284,7 @@ function BuilderContent() {
             <div className="flex flex-1 gap-4 overflow-hidden pb-4">
                 {/* Sidebar */}
                 <div className="w-56 shrink-0 overflow-y-auto space-y-4 pr-1">
-                    {HOOK_NODE_TEMPLATES.map((g) => (
+                    {hookNodeTemplates.map((g) => (
                         <div key={g.category}>
                             <div className="text-[10px] uppercase tracking-widest mb-2 font-mono font-bold" style={{ color: g.accentColor }}>
                                 {g.category}
@@ -300,7 +300,6 @@ function BuilderContent() {
                                             onClick={() => addNode(item)}
                                             className="w-full text-left p-2 rounded-xl text-[11px] font-mono transition-all flex items-center gap-2 cursor-grab active:cursor-grabbing"
                                             style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${g.accentColor}22`, color: "#ccc" }}
-                                            // Using native onDragStart for React Flow compatibility
                                             onDragStart={(e) => onDragStart(e as any, item.type, item.label)}
                                             draggable
                                         >

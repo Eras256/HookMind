@@ -1,19 +1,9 @@
-"use client";
-import { useState } from "react";
+'use client';
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
-
-const AI_SKILLS = [
-    { id: "volatility-analyst", name: "Volatility Analyst", tier: "CORE", icon: "📉", description: "Enables the agent to compute realized vs implied volatility ratios and score pool risk on a 0-10000 scale. Required for dynamic fee decisions.", compatible: ["claude", "gpt4o", "gemini", "grok", "ollama"], tags: ["Math", "Core Logic", "Fee Decisions"], _active: true, performance: { accuracy: "97.3%", decisions: 18420 } },
-    { id: "il-predictor", name: "IL Loss Predictor", tier: "CORE", icon: "🧮", description: "Calculates real-time Impermanent Loss exposure using the √(P1/P0) formula. Triggers IL protection when exposure > configured threshold.", compatible: ["claude", "gpt4o", "gemini", "grok"], tags: ["IL Math", "Protection"], _active: true, performance: { accuracy: "95.8%", decisions: 12038 } },
-    { id: "ipfs-auditor", name: "IPFS Audit Verifier", tier: "CORE", icon: "📋", description: "Before executing any signal, retrieves the last 5 IPFS audit logs and checks for consistency. Prevents drift in agent reasoning.", compatible: ["claude", "gpt4o", "gemini", "grok", "ollama"], tags: ["Audit", "IPFS", "Safety"], _active: true, performance: { accuracy: "99.9%", decisions: 18420 } },
-    { id: "social-sentiment", name: "Social Sentiment Engine", tier: "PRO", icon: "🐦", description: "Aggregates Twitter/X and Farcaster mentions of pool tokens. Feeds bullish/bearish score to fee decisions. Raises fees during viral pumps.", compatible: ["claude", "grok"], tags: ["Social", "NLP", "Sentiment"], _active: false, performance: { accuracy: "88.2%", decisions: 4201 } },
-    { id: "mev-classifier", name: "MEV Pattern Classifier", tier: "PRO", icon: "🤖", description: "Identifies sandwich, frontrun, and backrun patterns in the Unichain mempool in real-time. Raises fees preemptively when MEV bot detected.", compatible: ["claude", "gpt4o", "gemini"], tags: ["MEV", "Pattern Recognition"], _active: false, performance: { accuracy: "91.6%", decisions: 7823 } },
-    { id: "epoch-strategist", name: "Epoch Yield Strategist", tier: "PRO", icon: "⏱️", description: "Optimizes fee collection timing across ERC-4626 epoch windows. Understands the 7-day drip curve and maximizes claimable yield for LPs.", compatible: ["claude", "gemini"], tags: ["ERC-4626", "Yield", "Timing"], _active: false, performance: { accuracy: "93.4%", decisions: 5619 } },
-    { id: "macro-observer", name: "Macro Market Observer", tier: "EXPERIMENTAL", icon: "🌍", description: "Monitors Bitcoin dominance, ETH/BTC ratio, and total crypto market cap. Adjusts agent risk tolerance based on macro cycle phase.", compatible: ["claude", "gpt4o"], tags: ["Macro", "Experimental"], _active: false, performance: { accuracy: "79.1%", decisions: 924 } },
-    { id: "cross-pool-arb", name: "Cross-Pool Arbitrage Detector", tier: "EXPERIMENTAL", icon: "🔍", description: "Scans multiple Unichain pools simultaneously for price discrepancies. Signals when a hook fee adjustment can capture arbitrage premium.", compatible: ["claude", "gpt4o", "grok"], tags: ["Arbitrage", "Cross-Pool", "Alpha"], _active: false, performance: { accuracy: "82.3%", decisions: 2134 } },
-];
+import { useLanguage } from "@/context/LanguageContext";
 
 const TIER_STYLES: Record<string, { bg: string; text: string; border: string }> = {
     CORE: { bg: "rgba(0,242,254,0.12)", text: "var(--color-neural-cyan)", border: "rgba(0,242,254,0.3)" },
@@ -45,20 +35,33 @@ function Toggle({ active, onToggle }: { active: boolean; onToggle: () => void })
 }
 
 export default function SkillsPage() {
-    const [skills, setSkills] = useState(AI_SKILLS.map((s) => ({ ...s, active: s._active })));
+    const { t, language } = useLanguage();
+
+    const AI_SKILLS_BASE = useMemo(() => [
+        { id: "volatility-analyst", name: t.skills.names.vol, tier: "CORE", icon: "📉", description: t.skills.descriptions.vol, compatible: ["claude", "gpt4o", "gemini", "grok", "ollama"], tags: ["Math", "Core Logic", "Fee Decisions"], _active: true, performance: { accuracy: "97.3%", decisions: 18420 } },
+        { id: "il-predictor", name: t.skills.names.il, tier: "CORE", icon: "🧮", description: t.skills.descriptions.il, compatible: ["claude", "gpt4o", "gemini", "grok"], tags: ["IL Math", "Protection"], _active: true, performance: { accuracy: "95.8%", decisions: 12038 } },
+        { id: "ipfs-auditor", name: t.skills.names.ipfs, tier: "CORE", icon: "📋", description: t.skills.descriptions.ipfs, compatible: ["claude", "gpt4o", "gemini", "grok", "ollama"], tags: ["Audit", "IPFS", "Safety"], _active: true, performance: { accuracy: "99.9%", decisions: 18420 } },
+        { id: "social-sentiment", name: t.skills.names.social, tier: "PRO", icon: "🐦", description: t.skills.descriptions.social, compatible: ["claude", "grok"], tags: ["Social", "NLP", "Sentiment"], _active: false, performance: { accuracy: "88.2%", decisions: 4201 } },
+        { id: "mev-classifier", name: t.skills.names.mev, tier: "PRO", icon: "🤖", description: t.skills.descriptions.mev, compatible: ["claude", "gpt4o", "gemini"], tags: ["MEV", "Pattern Recognition"], _active: false, performance: { accuracy: "91.6%", decisions: 7823 } },
+        { id: "epoch-strategist", name: t.skills.names.epoch, tier: "PRO", icon: "⏱️", description: t.skills.descriptions.epoch, compatible: ["claude", "gemini"], tags: ["ERC-4626", "Yield", "Timing"], _active: false, performance: { accuracy: "93.4%", decisions: 5619 } },
+        { id: "macro-observer", name: t.skills.names.macro, tier: "EXPERIMENTAL", icon: "🌍", description: t.skills.descriptions.macro, compatible: ["claude", "gpt4o"], tags: ["Macro", "Experimental"], _active: false, performance: { accuracy: "79.1%", decisions: 924 } },
+        { id: "cross-pool-arb", name: t.skills.names.arb, tier: "EXPERIMENTAL", icon: "🔍", description: t.skills.descriptions.arb, compatible: ["claude", "gpt4o", "grok"], tags: ["Arbitrage", "Cross-Pool", "Alpha"], _active: false, performance: { accuracy: "82.3%", decisions: 2134 } },
+    ], [t]);
+
+    const [skillsState, setSkillsState] = useState(AI_SKILLS_BASE.map((s) => ({ ...s, active: s._active })));
 
     const toggle = (id: string) => {
-        setSkills((prev) => {
+        setSkillsState((prev) => {
             const updated = prev.map((s) => s.id === id ? { ...s, active: !s.active } : s);
             const skill = updated.find((s) => s.id === id)!;
-            toast.success(skill.active ? `${skill.name} activated` : `${skill.name} deactivated`);
+            toast.success(skill.active ? t.skills.toast_activated.replace("{name}", skill.name) : t.skills.toast_deactivated.replace("{name}", skill.name));
             const activeIds = updated.filter((s) => s.active).map((s) => s.id);
             localStorage.setItem("hm-skills-active", JSON.stringify(activeIds));
             return updated;
         });
     };
 
-    const activeSkills = skills.filter((s) => s.active);
+    const activeSkills = skillsState.filter((s) => s.active);
     const accuracyBoost = +(activeSkills.length * 2.3 - 4.6).toFixed(1);
 
     return (
@@ -67,32 +70,29 @@ export default function SkillsPage() {
             <div className="pt-8 mb-6">
                 <div className="inline-flex items-center gap-2 neon-badge mb-4">
                     <span className="w-1.5 h-1.5 rounded-full bg-neural-cyan animate-pulse" />
-                    NEURAL MODULES
+                    {t.skills.hero_badge}
                 </div>
                 <h1 className="text-5xl font-black tracking-tighter mb-3">
-                    AI Reasoning{" "}
+                    {t.skills.hero_title}{" "}
                     <span className="text-transparent bg-clip-text" style={{ backgroundImage: "linear-gradient(135deg,#00F2FE,#FC72FF)" }}>
-                        Skills
+                        {t.skills.hero_subtitle}
                     </span>
                 </h1>
                 <p className="text-gray-500 max-w-2xl mb-4">
-                    Specialized neural modules that enhance your agent's decision-making capacity on Unichain.
+                    {t.skills.hero_desc}
                 </p>
                 {/* Info Banner */}
                 <div
                     className="flex items-start gap-3 p-4 rounded-xl text-sm max-w-2xl bg-neural-cyan/5 border border-neural-cyan/20"
                 >
                     <span className="text-neural-cyan shrink-0">💡</span>
-                    <span className="text-gray-300">
-                        Skills inject specialized context into your AI provider's reasoning chain.
-                        They are composable — <strong className="text-white">stack multiple skills</strong> for compound intelligence.
-                    </span>
+                    <span className="text-gray-300" dangerouslySetInnerHTML={{ __html: t.skills.banner_info }} />
                 </div>
             </div>
 
             {/* Skills List */}
             <div className="space-y-3 mb-10">
-                {skills.map((skill, i) => {
+                {skillsState.map((skill, i) => {
                     const ts = TIER_STYLES[skill.tier];
                     return (
                         <motion.div
@@ -106,7 +106,7 @@ export default function SkillsPage() {
                             {skill.tier === "EXPERIMENTAL" && (
                                 <div className="flex items-center gap-1.5 text-xs font-mono text-neural-gold mb-3 pb-3 border-b border-white/5">
                                     <AlertTriangle size={12} />
-                                    Experimental: May reduce signal accuracy in production environments
+                                    {t.skills.warning_experimental}
                                 </div>
                             )}
 
@@ -131,8 +131,8 @@ export default function SkillsPage() {
                                     <div className="flex flex-wrap items-center gap-3">
                                         {/* Tags */}
                                         <div className="flex gap-1.5 flex-wrap">
-                                            {skill.tags.map((t) => (
-                                                <span key={t} className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/5 text-gray-500 border border-white/8">{t}</span>
+                                            {skill.tags.map((tag) => (
+                                                <span key={tag} className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/5 text-gray-500 border border-white/8">{tag}</span>
                                             ))}
                                         </div>
 
@@ -162,9 +162,9 @@ export default function SkillsPage() {
 
                                     {/* Performance */}
                                     <div className="flex items-center gap-4 mt-2 text-[11px] text-gray-600 font-mono">
-                                        <span>{skill.performance.accuracy} accuracy</span>
+                                        <span>{t.skills.stat_accuracy.replace("{pct}", skill.performance.accuracy)}</span>
                                         <span>·</span>
-                                        <span>{skill.performance.decisions.toLocaleString()} decisions</span>
+                                        <span>{t.skills.stat_decisions.replace("{count}", skill.performance.decisions.toLocaleString())}</span>
                                     </div>
                                 </div>
 
@@ -179,16 +179,16 @@ export default function SkillsPage() {
             {/* Stack Composer */}
             <div className="glass-card p-6">
                 <div className="flex items-center justify-between mb-6">
-                    <h2 className="font-black text-lg">Active Skill Stack</h2>
+                    <h2 className="font-black text-lg">{t.skills.panel_stack_title}</h2>
                     <div
                         className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-neural-green/10 text-neural-green border border-neural-green/30"
                     >
-                        {accuracyBoost > 0 ? `+${accuracyBoost}%` : "—"} Estimated Accuracy Boost
+                        {accuracyBoost > 0 ? t.skills.panel_stack_boost.replace("{boost}", accuracyBoost.toString()) : "—"}
                     </div>
                 </div>
 
                 {activeSkills.length === 0 ? (
-                    <div className="text-center py-8 text-gray-600 font-mono text-sm">No skills active. Enable at least one skill above.</div>
+                    <div className="text-center py-8 text-gray-600 font-mono text-sm">{t.skills.panel_stack_empty}</div>
                 ) : (
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 flex-wrap gap-y-3">
                         {activeSkills.map((skill, i) => (
@@ -216,7 +216,7 @@ export default function SkillsPage() {
                         <div
                             className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono font-bold bg-neural-magenta/10 border border-neural-magenta/30 text-neural-magenta whitespace-nowrap"
                         >
-                            <span>🧠</span> LLM Provider
+                            <span>🧠</span> {t.skills.llm_provider}
                         </div>
                     </div>
                 )}

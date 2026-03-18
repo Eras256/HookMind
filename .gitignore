@@ -12,3 +12,10 @@ coverage/
 .DS_Store
 pnpm-debug.log*
 .vercel
+/packages/contracts/cache/
+/packages/contracts/broadcast/
+/packages/contracts/lib/
+/packages/contracts/out/
+.burner_key
+*.key
+*.secret

@@ -10,8 +10,10 @@ import {
     Medal, Target, Clock, DollarSign, Info
 } from 'lucide-react';
 import { LEADERBOARD_DATA, LeaderboardEntry } from './data';
+import { useLanguage } from '@/context/LanguageContext';
 
 export default function LeaderboardPage() {
+    const { t } = useLanguage();
     const { address } = useAccount();
 
     // ═══════════════════════════════════════════
@@ -19,7 +21,7 @@ export default function LeaderboardPage() {
     // ═══════════════════════════════════════════
     const [sortBy, setSortBy] = useState<'signalsSent' | 'accuracy' | 'uptime' | 'totalRevenue'>('signalsSent');
     const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
-    const [filtermodel, setFilterModel] = useState<string>('All');
+    const [filtermodel, setFilterModel] = useState<string>(t.leaderboard.filter_all);
     const [highlightUser, setHighlightUser] = useState(true);
     const [expanded, setExpanded] = useState<number | null>(null);
 
@@ -55,7 +57,7 @@ export default function LeaderboardPage() {
                 uptime: localStats.uptime || 0,
                 poolsManaged: localStats.poolsManaged || 0,
                 totalRevenue: localStats.totalRevenue || 0,
-                badge: localStats.signalsSent > 0 ? '🔰 New Node' : '⚪ Unranked',
+                badge: localStats.signalsSent > 0 ? t.leaderboard.new_node : t.leaderboard.unranked,
                 badgeColor: 'text-gray-500 border-gray-500/30 bg-gray-500/10',
                 joinedDaysAgo: 0,
                 model: nodeSettings.provider || 'Unknown',
@@ -64,7 +66,7 @@ export default function LeaderboardPage() {
         }
 
         return withUser;
-    }, [address]);
+    }, [address, t]);
 
     // ═══════════════════════════════════════════
     // SORT + FILTER
@@ -72,7 +74,7 @@ export default function LeaderboardPage() {
     const sortedFiltered = useMemo(() => {
         let data = [...enrichedData];
 
-        if (filtermodel !== 'All') {
+        if (filtermodel !== t.leaderboard.filter_all) {
             data = data.filter(e => e.model === filtermodel);
         }
 
@@ -80,7 +82,7 @@ export default function LeaderboardPage() {
             const diff = a[sortBy] - b[sortBy];
             return sortDir === 'desc' ? -diff : diff;
         });
-    }, [enrichedData, sortBy, sortDir, filtermodel]);
+    }, [enrichedData, sortBy, sortDir, filtermodel, t]);
 
     const toggleSort = (key: typeof sortBy) => {
         if (sortBy === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
@@ -92,7 +94,7 @@ export default function LeaderboardPage() {
     // ═══════════════════════════════════════════
     const totalSignals = enrichedData.reduce((s, e) => s + e.signalsSent, 0);
     const avgAccuracy = Math.round(enrichedData.reduce((s, e) => s + e.accuracy, 0) / enrichedData.length * 10) / 10;
-    const totalRevenue = enrichedData.reduce((s, e) => s + e.totalRevenue, 0);
+    const totalRev = enrichedData.reduce((s, e) => s + e.totalRevenue, 0);
     const activeNodes = enrichedData.filter(e => e.uptime > 90).length;
 
     return (
@@ -118,23 +120,22 @@ export default function LeaderboardPage() {
                     <div className="flex items-center gap-2 mb-2">
                         <Trophy size={16} className="text-amber-400" />
                         <span className="text-xs font-mono text-amber-400 uppercase tracking-widest">
-                            UNICHAIN OPERATOR NETWORK
+                            {t.leaderboard.hero_badge}
                         </span>
                     </div>
-                    <h1 className="text-3xl sm:text-5xl font-black mb-2">Leaderboard</h1>
+                    <h1 className="text-3xl sm:text-5xl font-black mb-2">{t.leaderboard.hero_title}</h1>
                     <p className="text-white/40 max-w-xl">
-                        Ranking of the top AI agent operators managing Uniswap v4 Hooks
-                        on Unichain. Ranked by total signals submitted on-chain.
+                        {t.leaderboard.hero_desc}
                     </p>
                 </motion.div>
 
                 {/* ═══ GLOBAL STATS (4 KPIs) ═══ */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                     {[
-                        { label: 'Total Signals On-Chain', value: totalSignals.toLocaleString(), icon: Zap, color: 'text-neural-magenta' },
-                        { label: 'Network-Wide Accuracy', value: `${avgAccuracy}%`, icon: Target, color: 'text-neural-cyan' },
-                        { label: 'Total Operator Revenue', value: `$${totalRevenue.toLocaleString()} USDC`, icon: DollarSign, color: 'text-neural-green' },
-                        { label: 'Active Nodes (>90% uptime)', value: activeNodes.toString(), icon: Activity, color: 'text-purple-400' },
+                        { label: t.leaderboard.stat_total_signals, value: totalSignals.toLocaleString(), icon: Zap, color: 'text-neural-magenta' },
+                        { label: t.leaderboard.stat_accuracy, value: `${avgAccuracy}%`, icon: Target, color: 'text-neural-cyan' },
+                        { label: t.leaderboard.stat_revenue, value: `$${totalRev.toLocaleString()} USDC`, icon: DollarSign, color: 'text-neural-green' },
+                        { label: t.leaderboard.stat_active_nodes, value: activeNodes.toString(), icon: Activity, color: 'text-purple-400' },
                     ].map((stat, i) => (
                         <motion.div
                             key={stat.label}
@@ -169,11 +170,11 @@ export default function LeaderboardPage() {
                             {enrichedData[1]?.ens || `${enrichedData[1]?.address.slice(0, 6)}...${enrichedData[1]?.address.slice(-4)}`}
                         </div>
                         <div className="text-white/30 text-xs mt-1">
-                            {enrichedData[1]?.signalsSent.toLocaleString()} signals
+                            {enrichedData[1]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
                         </div>
                         <div className="mt-2 text-xs border border-slate-400/20 bg-slate-400/10 
                             text-slate-300 rounded-full px-2 py-0.5 inline-block">
-                            {enrichedData[1]?.accuracy}% accuracy
+                            {enrichedData[1]?.accuracy}% {t.leaderboard.accuracy}
                         </div>
                     </motion.div>
 
@@ -194,14 +195,14 @@ export default function LeaderboardPage() {
                             {enrichedData[0]?.ens || `${enrichedData[0]?.address.slice(0, 6)}...${enrichedData[0]?.address.slice(-4)}`}
                         </div>
                         <div className="text-white/50 text-xs mt-1">
-                            {enrichedData[0]?.signalsSent.toLocaleString()} signals
+                            {enrichedData[0]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
                         </div>
                         <div className="mt-2 text-xs border border-amber-400/30 bg-amber-400/10 
                             text-amber-400 rounded-full px-2 py-0.5 inline-block">
-                            {enrichedData[0]?.accuracy}% accuracy
+                            {enrichedData[0]?.accuracy}% {t.leaderboard.accuracy}
                         </div>
                         <div className="mt-1 text-xs text-amber-300/60">
-                            {enrichedData[0]?.poolsManaged} pools managed
+                            {enrichedData[0]?.poolsManaged} {t.leaderboard.pools_managed}
                         </div>
                     </motion.div>
 
@@ -218,11 +219,11 @@ export default function LeaderboardPage() {
                             {enrichedData[2]?.ens || `${enrichedData[2]?.address.slice(0, 6)}...${enrichedData[2]?.address.slice(-4)}`}
                         </div>
                         <div className="text-white/30 text-xs mt-1">
-                            {enrichedData[2]?.signalsSent.toLocaleString()} signals
+                            {enrichedData[2]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
                         </div>
                         <div className="mt-2 text-xs border border-orange-400/20 bg-orange-400/10 
                             text-orange-300 rounded-full px-2 py-0.5 inline-block">
-                            {enrichedData[2]?.accuracy}% accuracy
+                            {enrichedData[2]?.accuracy}% {t.leaderboard.accuracy}
                         </div>
                     </motion.div>
                 </div>
@@ -230,7 +231,7 @@ export default function LeaderboardPage() {
                 {/* ═══ FILTROS Y SORT ═══ */}
                 <div className="flex flex-col sm:flex-row gap-3 mb-6">
                     <div className="flex gap-2 flex-wrap">
-                        {['All', 'Claude 4.6', 'GPT-4o', 'Grok 3', 'Gemini 2.0', 'Ollama (Local)'].map(model => (
+                        {[t.leaderboard.filter_all, 'Claude 4.6', 'GPT-4o', 'Grok 3', 'Gemini 2.0', 'Ollama (Local)'].map(model => (
                             <button
                                 key={model}
                                 onClick={() => setFilterModel(model)}
@@ -252,7 +253,7 @@ export default function LeaderboardPage() {
                                 }`}
                         >
                             <Star size={12} />
-                            My Position
+                            {t.leaderboard.my_position}
                         </button>
                     )}
                 </div>
@@ -263,14 +264,14 @@ export default function LeaderboardPage() {
                     <div className="grid grid-cols-[auto_1fr_auto_auto] sm:grid-cols-[auto_1fr_repeat(5,auto)] gap-4 px-6 py-4 
                           border-b border-white/8 text-[10px] font-mono text-white/30 
                           uppercase tracking-wider">
-                        <div>Rank</div>
-                        <div>Operator</div>
-                        <div className="hidden sm:block">Signals</div>
-                        <div className="sm:hidden">Score</div>
-                        <div className="hidden sm:block">Accuracy</div>
-                        <div className="hidden sm:block">Uptime</div>
-                        <div className="hidden sm:block">Revenue</div>
-                        <div className="hidden sm:block">Action</div>
+                        <div>{t.leaderboard.rank}</div>
+                        <div>{t.leaderboard.operator}</div>
+                        <div className="hidden sm:block">{t.agents.signals}</div>
+                        <div className="sm:hidden">{t.leaderboard.score}</div>
+                        <div className="hidden sm:block">{t.agents.accuracy}</div>
+                        <div className="hidden sm:block">{t.leaderboard.uptime}</div>
+                        <div className="hidden sm:block">{t.leaderboard.revenue}</div>
+                        <div className="hidden sm:block">{t.leaderboard.action}</div>
                     </div>
 
                     <AnimatePresence>
@@ -289,7 +290,7 @@ export default function LeaderboardPage() {
                                 >
                                     <div
                                         className="grid grid-cols-[auto_1fr_auto_auto] sm:grid-cols-[auto_1fr_repeat(5,auto)] gap-4 px-4 sm:px-6 py-4 
-                               items-center cursor-pointer"
+                                items-center cursor-pointer"
                                         onClick={() => setExpanded(isExpanded ? null : entry.rank)}
                                     >
                                         <div className="w-8 text-center">
@@ -321,14 +322,14 @@ export default function LeaderboardPage() {
                                                     </span>
                                                     {isMe && (
                                                         <span className="text-[9px] bg-neural-magenta/20 border border-neural-magenta/30 
-                                            text-neural-magenta rounded-full px-2 py-0.5 shrink-0">
-                                                            YOU
+                                             text-neural-magenta rounded-full px-2 py-0.5 shrink-0">
+                                                            {t.leaderboard.you}
                                                         </span>
                                                     )}
                                                     {entry.joinedDaysAgo >= 30 && (
                                                         <span className="text-[9px] bg-purple-500/20 border border-purple-500/30 
-                                            text-purple-300 rounded-full px-2 py-0.5 shrink-0">
-                                                            🏆 VETERAN
+                                             text-purple-300 rounded-full px-2 py-0.5 shrink-0">
+                                                            🏆 {t.leaderboard.veteran}
                                                         </span>
                                                     )}
                                                 </div>
@@ -346,13 +347,13 @@ export default function LeaderboardPage() {
                                             <div className="font-bold text-sm text-neural-cyan truncate">
                                                 {entry.signalsSent.toLocaleString()}
                                             </div>
-                                            <div className="text-[9px] text-white/20">signals</div>
+                                            <div className="text-[9px] text-white/20">{t.leaderboard.signals}</div>
                                         </div>
 
                                         <div className="text-right hidden sm:block">
                                             <div className={`font-bold text-sm font-mono ${entry.rank === 1 ? 'text-amber-400' : 'text-white/80'
                                                 }`}>{entry.signalsSent.toLocaleString()}</div>
-                                            <div className="text-[9px] text-white/20">signals</div>
+                                            <div className="text-[9px] text-white/20">{t.leaderboard.signals}</div>
                                         </div>
 
                                         <div className="text-right hidden sm:block">
@@ -360,14 +361,14 @@ export default function LeaderboardPage() {
                                                 entry.accuracy >= 95 ? 'text-neural-cyan' :
                                                     entry.accuracy >= 90 ? 'text-amber-400' : 'text-neural-red'
                                                 }`}>{entry.accuracy}%</div>
-                                            <div className="text-[9px] text-white/20">guardrails</div>
+                                            <div className="text-[9px] text-white/20">{t.leaderboard.guardrails}</div>
                                         </div>
 
                                         <div className="text-right hidden sm:block">
                                             <div className={`font-bold text-sm ${entry.uptime >= 99 ? 'text-neural-green' :
                                                 entry.uptime >= 95 ? 'text-neural-cyan' : 'text-amber-400'
                                                 }`}>{entry.uptime}%</div>
-                                            <div className="text-[9px] text-white/20">30d avg</div>
+                                            <div className="text-[9px] text-white/20">{t.leaderboard.uptime_30d}</div>
                                         </div>
 
                                         <div className="text-right hidden sm:block">
@@ -392,7 +393,7 @@ export default function LeaderboardPage() {
                                                 onClick={e => {
                                                     e.stopPropagation();
                                                     navigator.clipboard.writeText(entry.address);
-                                                    toast.success('Address copied!');
+                                                    toast.success(t.common.address_copied);
                                                 }}
                                                 className="p-1.5 rounded-lg hover:bg-white/10 text-white/30 
                                    hover:text-white transition-all hidden sm:block"
@@ -414,42 +415,42 @@ export default function LeaderboardPage() {
                                                 <div className="px-6 py-5 bg-black/20">
                                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                                         <div className="bg-white/5 rounded-xl p-4">
-                                                            <div className="text-[10px] text-white/30 uppercase mb-1">Pools Managed</div>
+                                                            <div className="text-[10px] text-white/30 uppercase mb-1">{t.leaderboard.pools_managed}</div>
                                                             <div className="text-xl font-bold text-neural-cyan">{entry.poolsManaged}</div>
-                                                            <div className="text-[10px] text-white/20">active hooks</div>
+                                                            <div className="text-[10px] text-white/20">{t.leaderboard.active_hooks}</div>
                                                         </div>
                                                         <div className="bg-white/5 rounded-xl p-4">
-                                                            <div className="text-[10px] text-white/30 uppercase mb-1">Days Active</div>
+                                                            <div className="text-[10px] text-white/30 uppercase mb-1">{t.leaderboard.days_active}</div>
                                                             <div className="text-xl font-bold text-purple-400">{entry.joinedDaysAgo}d</div>
                                                             <div className="text-[10px] text-white/20">
-                                                                {entry.joinedDaysAgo >= 30 ? '🏆 Veteran' :
-                                                                    entry.joinedDaysAgo >= 7 ? '⚡ Established' : '🌱 New'}
+                                                                {entry.joinedDaysAgo >= 30 ? `🏆 ${t.leaderboard.veteran}` :
+                                                                    entry.joinedDaysAgo >= 7 ? '⚡ Established' : `🌱 ${t.leaderboard.new_node.split(' ')[1]}`}
                                                             </div>
                                                         </div>
                                                         <div className="bg-white/5 rounded-xl p-4">
-                                                            <div className="text-[10px] text-white/30 uppercase mb-1">Signals / Day</div>
+                                                            <div className="text-[10px] text-white/30 uppercase mb-1">{t.leaderboard.signals_day}</div>
                                                             <div className="text-xl font-bold text-amber-400">
                                                                 {entry.joinedDaysAgo > 0
                                                                     ? Math.round(entry.signalsSent / entry.joinedDaysAgo).toLocaleString()
                                                                     : entry.signalsSent}
                                                             </div>
-                                                            <div className="text-[10px] text-white/20">avg daily cadence</div>
+                                                            <div className="text-[10px] text-white/20">{t.leaderboard.daily_cadence}</div>
                                                         </div>
                                                         <div className="bg-white/5 rounded-xl p-4">
-                                                            <div className="text-[10px] text-white/30 uppercase mb-1">Revenue / Signal</div>
+                                                            <div className="text-[10px] text-white/30 uppercase mb-1">{t.leaderboard.revenue_signal}</div>
                                                             <div className="text-xl font-bold text-neural-green">
                                                                 ${entry.signalsSent > 0
                                                                     ? (entry.totalRevenue / entry.signalsSent).toFixed(3)
                                                                     : '0.000'} USDC
                                                             </div>
-                                                            <div className="text-[10px] text-white/20">efficiency ratio</div>
+                                                            <div className="text-[10px] text-white/20">{t.leaderboard.efficiency_ratio}</div>
                                                         </div>
                                                     </div>
 
                                                     <div className="mt-4 grid grid-cols-2 gap-4">
                                                         <div>
                                                             <div className="flex justify-between mb-1">
-                                                                <span className="text-[10px] text-white/30 uppercase">Accuracy</span>
+                                                                <span className="text-[10px] text-white/30 uppercase">{t.leaderboard.accuracy}</span>
                                                                 <span className="text-[10px] text-neural-green font-mono">{entry.accuracy}%</span>
                                                             </div>
                                                             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -463,7 +464,7 @@ export default function LeaderboardPage() {
                                                         </div>
                                                         <div>
                                                             <div className="flex justify-between mb-1">
-                                                                <span className="text-[10px] text-white/30 uppercase">Uptime</span>
+                                                                <span className="text-[10px] text-white/30 uppercase">{t.leaderboard.uptime}</span>
                                                                 <span className="text-[10px] text-neural-magenta font-mono">{entry.uptime}%</span>
                                                             </div>
                                                             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
@@ -479,10 +480,9 @@ export default function LeaderboardPage() {
 
                                                     {isMe && (
                                                         <div className="mt-4 p-3 bg-neural-magenta/5 border border-neural-magenta/20 
-                                            rounded-xl flex items-start gap-2 text-xs text-neural-magenta/80">
+                                             rounded-xl flex items-start gap-2 text-xs text-neural-magenta/80">
                                                             <Info size={14} className="shrink-0 mt-0.5" />
-                                                            Your stats update every 15 minutes from Unichain.
-                                                            Keep your daemon running to improve your ranking!
+                                                            {t.leaderboard.stats_update_info}
                                                         </div>
                                                     )}
                                                 </div>
@@ -510,7 +510,7 @@ export default function LeaderboardPage() {
                        max-w-lg w-full mx-4"
                         >
                             <div className="text-[10px] text-white/30 uppercase tracking-wider shrink-0">
-                                Your Position
+                                {t.leaderboard.my_position}
                             </div>
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className="w-7 h-7 rounded-full bg-neural-magenta/20 border border-neural-magenta/40 
@@ -520,13 +520,13 @@ export default function LeaderboardPage() {
                                 <span className="font-mono text-sm text-white truncate">
                                     {`${address.slice(0, 6)}...${address.slice(-4)}`}
                                 </span>
-                                <span className="text-xs text-white/30 shrink-0">→ Keep sending signals to climb! ⚡</span>
+                                <span className="text-xs text-white/30 shrink-0">{t.leaderboard.climb_info}</span>
                             </div>
                             <button
-                                onClick={() => toast.info('Run your agent daemon to earn more signals!')}
+                                onClick={() => toast.info(t.leaderboard.run_daemon_info)}
                                 className="text-xs text-neural-magenta hover:underline shrink-0"
                             >
-                                How to climb?
+                                {t.leaderboard.how_to_climb}
                             </button>
                         </motion.div>
                     )}

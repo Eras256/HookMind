@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -8,36 +8,24 @@ import {
     CheckCircle2, Copy, ExternalLink, Activity
 } from "lucide-react";
 import { toast } from "sonner";
-
-const TABS = [
-    { id: "overview", label: "Overview", icon: Book },
-    { id: "quickstart", label: "Quick Start", icon: Rocket },
-    { id: "architecture", label: "Architecture", icon: Layers },
-    { id: "contracts", label: "Contracts", icon: Code },
-    { id: "agent", label: "Agent Daemon", icon: Cpu },
-    { id: "builder", label: "Hook Builder", icon: Workflow },
-    { id: "api", label: "API & Webhooks", icon: Terminal },
-    { id: "mcp", label: "MCP Tools", icon: Zap },
-    { id: "sdk", label: "TypeScript SDK", icon: Package },
-    { id: "fees", label: "Fee System", icon: DollarSign },
-    { id: "security", label: "Security", icon: Shield },
-];
+import { useLanguage } from "@/context/LanguageContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sections
 // ─────────────────────────────────────────────────────────────────────────────
 
 function OverviewSection() {
+    const { t } = useLanguage();
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             {/* Hero Stats Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {[
-                    { label: "Version", value: "v1.0.0", color: "text-neural-cyan" },
-                    { label: "Network", value: "Unichain", color: "text-neural-magenta" },
-                    { label: "Hook Standard", value: "v4 ERC-7683", color: "text-purple-400" },
-                    { label: "Agent Models", value: "5 Providers", color: "text-amber-400" },
-                    { label: "IPFS Audits", value: "100% Signed", color: "text-emerald-400" },
+                    { label: t.docs.overview.version, value: "v1.0.0", color: "text-neural-cyan" },
+                    { label: t.docs.overview.network, value: "Unichain", color: "text-neural-magenta" },
+                    { label: t.docs.overview.hook_standard, value: "v4 ERC-7683", color: "text-purple-400" },
+                    { label: t.docs.overview.agent_models, value: "5 Providers", color: "text-amber-400" },
+                    { label: t.docs.overview.ipfs_audits, value: "100% Signed", color: "text-emerald-400" },
                 ].map((stat, i) => (
                     <div key={i} className={`bg-white/5 border border-white/10 rounded-xl p-4 ${i === 4 ? "col-span-2 sm:col-span-1" : ""}`}>
                         <div className="text-[10px] text-white/40 uppercase tracking-widest mb-1 font-mono">{stat.label}</div>
@@ -48,26 +36,24 @@ function OverviewSection() {
 
             {/* Executive Summary */}
             <div className="glass-card p-8">
-                <h2 className="text-2xl font-black mb-4">What is HookMind?</h2>
+                <h2 className="text-2xl font-black mb-4">{t.docs.overview.what_is}</h2>
                 <p className="text-gray-400 leading-relaxed mb-6 font-mono text-sm">
-                    HookMind is the first Autonomous AI Agent Mesh that controls Uniswap v4 Hooks on Unichain in real time.
-                    Every AI decision is ECDSA-signed by the Agent EOA, pinned immutably to IPFS via Pinata, and executed
-                    on-chain via HookMindCore.sol — creating a fully auditable, unstoppable DeFi intelligence layer.
+                    {t.docs.overview.desc}
                 </p>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-neural-cyan mb-3">Three Problems Solved:</h3>
+                <h3 className="text-sm font-bold uppercase tracking-wider text-neural-cyan mb-3">{t.docs.overview.problems_solved}</h3>
                 <ul className="space-y-2 text-gray-300 font-mono text-sm list-disc list-inside">
-                    <li>Static Fees → <strong className="text-white">Dynamic AI Fees</strong> (500–10000 bps, real-time)</li>
-                    <li>Impermanent Loss → <strong className="text-white">Native IL Protection + Insurance</strong> (CCTP)</li>
-                    <li>Volatile Yield → <strong className="text-white">Smooth Yield</strong> via ERC-4626 7-day Epoch Drip</li>
+                    <li>{t.docs.overview.static_fees} → <strong className="text-white">{t.docs.overview.dynamic_ai_fees}</strong> (500–10000 bps)</li>
+                    <li>{t.docs.overview.il} → <strong className="text-white">{t.docs.overview.native_il_protection}</strong></li>
+                    <li>{t.docs.overview.volatile_yield} → <strong className="text-white">{t.docs.overview.smooth_yield}</strong></li>
                 </ul>
             </div>
 
             {/* How It Works */}
             <div className="grid md:grid-cols-3 gap-6">
                 {[
-                    { title: "Off-Chain Intelligence", desc: "Agent reads Unichain blocks, calls LLM (Claude/GPT/Grok), gets fee recommendation as JSON.", color: "#00F2FE" },
-                    { title: "Immutable Audit Trail", desc: "Decision pinned to IPFS via Pinata before any on-chain action. Anyone can verify.", color: "#FC72FF" },
-                    { title: "On-Chain Execution", desc: "Agent signs ECDSA, calls submitAgentSignal() on HookMindCore.sol. Hook applies new fee.", color: "#00FFA3" },
+                    { title: t.docs.overview.how_it_works.title_1, desc: t.docs.overview.how_it_works.desc_1, color: "#00F2FE" },
+                    { title: t.docs.overview.how_it_works.title_2, desc: t.docs.overview.how_it_works.desc_2, color: "#FC72FF" },
+                    { title: t.docs.overview.how_it_works.title_3, desc: t.docs.overview.how_it_works.desc_3, color: "#00FFA3" },
                 ].map((step, i) => (
                     <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-6 relative overflow-hidden">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-white opacity-[0.02] rounded-bl-full" style={{ backgroundColor: step.color }} />
@@ -80,12 +66,12 @@ function OverviewSection() {
 
             {/* Business Model */}
             <div>
-                <h2 className="text-2xl font-black mb-6">Protocol Revenue</h2>
+                <h2 className="text-2xl font-black mb-6">{t.docs.overview.revenue_title}</h2>
                 <div className="grid md:grid-cols-3 gap-6">
                     {[
-                        { title: "Per-Agent License", price: "5 USDC / ~100 MXN", desc: "One-time fee paid to HookMindFees.sol. 90% Treasury, 10% Dev.", border: "#FC72FF" },
-                        { title: "Signal Commission", price: "1% of Marketplace", desc: "Operators sell their AI signals. HookMind auto-deducts 1%.", border: "#00F2FE" },
-                        { title: "B2B API Access", price: "Custom Pricing", desc: "Webhook subscriptions, MCP server access, bulk signal feeds.", border: "#00FFA3" },
+                        { title: t.docs.overview.rev_card_1_title, price: t.docs.overview.rev_card_1_price, desc: t.docs.overview.rev_card_1_desc, border: "#FC72FF" },
+                        { title: t.docs.overview.rev_card_2_title, price: t.docs.overview.rev_card_2_price, desc: t.docs.overview.rev_card_2_desc, border: "#00F2FE" },
+                        { title: t.docs.overview.rev_card_3_title, price: t.docs.overview.rev_card_3_price, desc: t.docs.overview.rev_card_3_desc, border: "#00FFA3" },
                     ].map((card, i) => (
                         <div key={i} className="bg-white/5 border-l-4 rounded-xl p-6" style={{ borderLeftColor: card.border }}>
                             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-1">{card.title}</h3>
@@ -98,15 +84,15 @@ function OverviewSection() {
 
             {/* Verified Actions */}
             <div className="glass-card p-6 overflow-x-auto">
-                <h3 className="text-lg font-bold mb-4">Live Audited Actions</h3>
+                <h3 className="text-lg font-bold mb-4">{t.docs.overview.audited_actions_title}</h3>
                 <table className="w-full text-left font-mono text-xs">
                     <thead>
                         <tr className="text-gray-500 border-b border-white/10 uppercase tracking-wider">
+                            <th className="pb-3 pr-4">{t.agents.table_block}</th>
+                            <th className="pb-3 pr-4">{t.agents.table_pool}</th>
+                            <th className="pb-3 pr-4">{t.agents.table_action}</th>
                             <th className="pb-3 pr-4">Tx Hash</th>
-                            <th className="pb-3 pr-4">Pool</th>
-                            <th className="pb-3 pr-4">Action</th>
-                            <th className="pb-3 pr-4">Block</th>
-                            <th className="pb-3 pr-4">Status</th>
+                            <th className="pb-3 pr-4">{t.agents.table_status}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,10 +102,10 @@ function OverviewSection() {
                             { tx: "0x1d9b...a7c4", pool: "UNI/ETH", action: "submitAgentSignal(11200bps)", block: "1420260", status: "REVERT (GUARDRAIL)" },
                         ].map((row, i) => (
                             <tr key={i} className="border-b border-white/3">
-                                <td className="py-3 pr-4 text-neural-cyan">{row.tx}</td>
+                                <td className="py-3 pr-4 text-gray-400">{row.block}</td>
                                 <td className="py-3 pr-4 text-white">{row.pool}</td>
-                                <td className="py-3 pr-4 text-gray-400">{row.action}</td>
-                                <td className="py-3 pr-4 text-gray-500">{row.block}</td>
+                                <td className="py-3 pr-4 text-gray-500 text-[10px]">{row.action}</td>
+                                <td className="py-3 pr-4 text-neural-cyan truncate max-w-[80px]">{row.tx}</td>
                                 <td className={`py-3 pr-4 ${row.status.includes("REVERT") ? "text-red-400" : "text-emerald-400"}`}>{row.status}</td>
                             </tr>
                         ))}
@@ -152,29 +138,34 @@ function CodeSnippet({ code, lang = "bash" }: { code: string; lang?: string }) {
 }
 
 function QuickstartSection() {
+    const { t } = useLanguage();
     const steps = [
         {
-            title: "Clone & Install",
+            title: t.docs.quickstart.step_1,
             content: <CodeSnippet code={`git clone https://github.com/Eras256/HookMind\ncd HookMind && pnpm install`} />
         },
         {
-            title: "Configure Environment",
+            title: t.docs.quickstart.step_2,
             content: (
                 <CodeSnippet code={`# packages/agent/.env\nUNICHAIN_RPC=https://mainnet.unichain.org\nAGENT_PRIVATE_KEY=0x...\nANTHROPIC_API_KEY=sk-ant-...\nPINATA_JWT=eyJ...\nHOOKMIND_CORE=0x...   # HookMindCore.sol\nAGENT_REGISTRY=0x...  # AgentRegistry.sol`} lang="env" />
             )
         },
         {
-            title: "Pay Deployment License (100 MXN)",
+            title: t.docs.quickstart.step_3,
             content: (
                 <div className="text-sm font-mono text-gray-400 mt-2">
-                    Go to <strong className="text-white bg-white/10 px-1 rounded">/agents</strong> → Click "Deploy New Agent" → Pay 5 USDC<br />
-                    or use CLI:
+                    {t.docs.quickstart.step_3_desc.split('→').map((part, i) => (
+                        <span key={i}>
+                            {part}
+                            {i < t.docs.quickstart.step_3_desc.split('→').length - 1 && <strong className="text-white bg-white/10 px-1 rounded">/agents</strong>}
+                        </span>
+                    ))}<br />
                     <CodeSnippet code={`npx hookmind-cli register-node --network unichain`} />
                 </div>
             )
         },
         {
-            title: "Start the Agent Daemon",
+            title: t.docs.quickstart.step_4,
             content: (
                 <>
                     <CodeSnippet code={`pnpm --filter @hookmind/agent dev`} />
@@ -186,7 +177,7 @@ function QuickstartSection() {
             )
         },
         {
-            title: "Launch the Frontend",
+            title: t.docs.quickstart.step_5,
             content: (
                 <CodeSnippet code={`pnpm --filter @hookmind/web dev\n# Open http://localhost:3000\n# Connect RainbowKit wallet to monitor the Dashboard`} />
             )
@@ -212,15 +203,16 @@ function QuickstartSection() {
 }
 
 function ArchitectureSection() {
+    const { t } = useLanguage();
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
             <div className="flex flex-col gap-6 relative">
                 <div className="absolute left-6 top-6 bottom-6 w-px bg-white/10 -z-10 hidden md:block" />
                 {[
-                    { color: "border-cyan-500", text: "text-cyan-400", title: "Capa 1: Off-Chain Neural Mesh", desc: "ElizaOS-inspired engine. Reads Unichain blocks via viem publicClient. Computes volatility score (0–10000) and IL exposure. Routes to LLM (Claude/GPT/Grok/Gemini/Ollama) which responds with strict JSON." },
-                    { color: "border-fuchsia-500", text: "text-fuchsia-400", title: "Capa 2: Immutable Audit Layer", desc: "JSON response is serialized and pinned to IPFS via Pinata SDK. Returns a CID (Content Identifier) — the immutable proof of AI reasoning. CID is stored in AgentRegistry.sol." },
-                    { color: "border-purple-500", text: "text-purple-400", title: "Capa 3: ECDSA Signature Layer", desc: "Agent private key signs: hash(fee_bps | il_flag | cid | nonce | poolId). Signature is SECP256K1. Recoverable address must match registry entry. Prevents unauthorized manipulation." },
-                    { color: "border-emerald-500", text: "text-emerald-400", title: "Capa 4: Uniswap v4 Hook Execution", desc: "submitAgentSignal() validates signature + nonce + guardrails (500→10000). Updates dynamicFee in beforeSwap hook. Emits AgentSignalExecuted event for frontend WebSocket." },
+                    { color: "border-cyan-500", text: "text-cyan-400", title: t.docs.architecture.layer_1_title, desc: t.docs.architecture.layer_1_desc },
+                    { color: "border-fuchsia-500", text: "text-fuchsia-400", title: t.docs.architecture.layer_2_title, desc: t.docs.architecture.layer_2_desc },
+                    { color: "border-purple-500", text: "text-purple-400", title: t.docs.architecture.layer_3_title, desc: t.docs.architecture.layer_3_desc },
+                    { color: "border-emerald-500", text: "text-emerald-400", title: t.docs.architecture.layer_4_title, desc: t.docs.architecture.layer_4_desc },
                 ].map((layer, i) => (
                     <div key={i} className="flex flex-col md:flex-row gap-6">
                         <div className={`w-12 h-12 rounded-xl bg-black border-2 flex items-center justify-center font-bold font-mono shrink-0 ml-0 md:ml-0.5 ${layer.color} ${layer.text}`}>
@@ -235,13 +227,13 @@ function ArchitectureSection() {
             </div>
 
             <div className="glass-card p-6">
-                <h3 className="text-lg font-bold mb-6">Execution Flow E2E</h3>
+                <h3 className="text-lg font-bold mb-6">{t.docs.architecture.flow_title}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                     {[
-                        { tag: "01", text: "Block Detected: Agent reads Unichain N+1" },
-                        { tag: "02", text: "AI Decides: LLM outputs fee_bps = 7200" },
-                        { tag: "03", text: "IPFS Pinned: Decision audited, CID=QmX..." },
-                        { tag: "04", text: "Hook Updated: submitAgentSignal() executed" },
+                        { tag: "01", text: t.docs.architecture.flow_1 },
+                        { tag: "02", text: t.docs.architecture.flow_2 },
+                        { tag: "03", text: t.docs.architecture.flow_3 },
+                        { tag: "04", text: t.docs.architecture.flow_4 },
                     ].map((step, i) => (
                         <div key={i} className="bg-white/5 border border-white/10 p-4 rounded-xl relative">
                             <div className="text-neural-cyan font-mono font-bold mb-2">{step.tag}</div>
@@ -252,11 +244,11 @@ function ArchitectureSection() {
             </div>
 
             <div className="glass-card p-6">
-                <h3 className="text-lg font-bold mb-4">Monorepo Structure</h3>
+                <h3 className="text-lg font-bold mb-4">{t.docs.architecture.monorepo_title}</h3>
                 <pre className="text-xs font-mono bg-void p-4 rounded-xl border border-white/10 text-gray-500 leading-relaxed">
                     . <br />
                     ├── apps/ <br />
-                    │   └── <span className="text-emerald-400">web/                 # Next.js 15 App (Neural Dashboard)</span> <br />
+                    │   └── <span className="text-emerald-400">web/                 # Next.js 15 App ({t.nav.home} Dashboard)</span> <br />
                     └── packages/ <br />
                     &nbsp;&nbsp;&nbsp; ├── <span className="text-cyan-400">contracts/           # Solidity Foundry (Uniswap v4 Hooks)</span> <br />
                     &nbsp;&nbsp;&nbsp; ├── <span className="text-fuchsia-400">agent/               # Node.js Daemon (Execution Engine)</span> <br />
@@ -269,44 +261,47 @@ function ArchitectureSection() {
 }
 
 function ContractsSection() {
+    const { t } = useLanguage();
+    const contracts = [
+        {
+            name: "HookMindCore.sol",
+            desc: t.docs.contracts.core_desc,
+            color: "border-[#00F2FE]",
+            details: (
+                <>
+                    <table className="w-full text-left font-mono text-xs mb-4">
+                        <thead><tr className="text-gray-500 border-b border-white/10"><th className="pb-2">Function</th><th className="pb-2">Point</th><th className="pb-2">Description</th></tr></thead>
+                        <tbody>
+                            <tr className="border-b border-white/3"><td className="py-2 text-neural-cyan">beforeSwap</td><td className="py-2 text-white">beforeSwap</td><td className="py-2 text-gray-400">Applies dynamic AI fee</td></tr>
+                            <tr className="border-b border-white/3"><td className="py-2 text-neural-cyan">afterSwap</td><td className="py-2 text-white">afterSwap</td><td className="py-2 text-gray-400">Extracts fee to YieldVault</td></tr>
+                            <tr className="border-b border-white/3"><td className="py-2 text-neural-magenta">submitAgentSignal</td><td className="py-2 text-white">External</td><td className="py-2 text-gray-400">Authorized EOA signature execution</td></tr>
+                        </tbody>
+                    </table>
+                    <CodeSnippet lang="solidity" code={`require(fee_bps >= MIN_FEE && fee_bps <= MAX_FEE, "Fee out of range");\nrequire(ecrecover(msgHash, v, r, s) == registry.agents(signal.agentId), "Invalid sig");\nrequire(signal.nonce == nonces[agentId]++, "Replay attack detected");`} />
+                </>
+            )
+        },
+        {
+            name: "AgentRegistry.sol", desc: t.docs.contracts.registry_desc, color: "border-[#FC72FF]",
+            details: <CodeSnippet lang="solidity" code={`mapping(address => AgentInfo) public agents;\n// { isActive, signalCount, lastCid, stakedAmount }`} />
+        },
+        {
+            name: "YieldVault.sol", desc: t.docs.contracts.vault_desc, color: "border-[#00FFA3]",
+            details: <div className="text-sm font-mono text-gray-400">drip_rate = pendingFees / 7 days<br />claimable = min(accrued, elapsed * drip_rate)</div>
+        },
+        {
+            name: "ILInsurance.sol", desc: t.docs.contracts.insurance_desc, color: "border-purple-500",
+            details: <CodeSnippet lang="solidity" code={`function claimInsurance(address lp) external { ... }`} />
+        },
+        {
+            name: "HookMindFees.sol", desc: t.docs.contracts.fees_desc, color: "border-amber-500",
+            details: <div className="text-sm font-mono text-gray-400">90% Treasury, 10% Protocol Development.</div>
+        }
+    ];
+
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            {[
-                {
-                    name: "HookMindCore.sol",
-                    desc: "The central Uniswap v4 hook. Accepts AI signals, applies dynamic fees.",
-                    color: "border-[#00F2FE]",
-                    details: (
-                        <>
-                            <table className="w-full text-left font-mono text-xs mb-4">
-                                <thead><tr className="text-gray-500 border-b border-white/10"><th className="pb-2">Function</th><th className="pb-2">Point</th><th className="pb-2">Description</th></tr></thead>
-                                <tbody>
-                                    <tr className="border-b border-white/3"><td className="py-2 text-neural-cyan">beforeSwap</td><td className="py-2 text-white">beforeSwap</td><td className="py-2 text-gray-400">Applies dynamic AI fee</td></tr>
-                                    <tr className="border-b border-white/3"><td className="py-2 text-neural-cyan">afterSwap</td><td className="py-2 text-white">afterSwap</td><td className="py-2 text-gray-400">Extracts fee to YieldVault</td></tr>
-                                    <tr className="border-b border-white/3"><td className="py-2 text-neural-magenta">submitAgentSignal</td><td className="py-2 text-white">External</td><td className="py-2 text-gray-400">Authorized EOA signature execution</td></tr>
-                                </tbody>
-                            </table>
-                            <CodeSnippet lang="solidity" code={`require(fee_bps >= MIN_FEE && fee_bps <= MAX_FEE, "Fee out of range");\nrequire(ecrecover(msgHash, v, r, s) == registry.agents(signal.agentId), "Invalid sig");\nrequire(signal.nonce == nonces[agentId]++, "Replay attack detected");`} />
-                        </>
-                    )
-                },
-                {
-                    name: "AgentRegistry.sol", desc: "RBAC contract mapping EOA → Agent Info", color: "border-[#FC72FF]",
-                    details: <CodeSnippet lang="solidity" code={`mapping(address => AgentInfo) public agents;\n// { isActive, signalCount, lastCid, stakedAmount }`} />
-                },
-                {
-                    name: "YieldVault.sol", desc: "ERC-4626 vault distributing swap fees over 7-day epochs.", color: "border-[#00FFA3]",
-                    details: <div className="text-sm font-mono text-gray-400">drip_rate = pendingFees / 7 days<br />claimable = min(accrued, elapsed * drip_rate)</div>
-                },
-                {
-                    name: "ILInsurance.sol", desc: "Compensates LPs up to 500 USDC on >2% IL using Circle CCTP.", color: "border-purple-500",
-                    details: <CodeSnippet lang="solidity" code={`function claimInsurance(address lp) external { ... }`} />
-                },
-                {
-                    name: "HookMindFees.sol", desc: "Handles agent license payments (5 USDC) and marketplace cuts.", color: "border-amber-500",
-                    details: <div className="text-sm font-mono text-gray-400">90% Treasury, 10% Protocol Development.</div>
-                }
-            ].map((c, i) => (
+            {contracts.map((c, i) => (
                 <div key={i} className={`glass-card p-6 border-l-4`} style={{ borderLeftColor: c.color.replace("border-[", "").replace("]", "") }}>
                     <h3 className="font-bold font-mono text-lg mb-2">{c.name}</h3>
                     <p className="text-sm text-gray-400 mb-4">{c.desc}</p>
@@ -318,6 +313,7 @@ function ContractsSection() {
 }
 
 function AgentSection() {
+    const { t } = useLanguage();
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
@@ -365,6 +361,7 @@ Respond ONLY in JSON:
 }
 
 function ApiSection() {
+    const { t } = useLanguage();
     const ENDPOINTS = [
         { method: "GET", path: "/health", desc: "Agent daemon health check" },
         { method: "POST", path: "/api/auth/keys", desc: "Generate API key" },
@@ -409,6 +406,7 @@ function ApiSection() {
 }
 
 function McpSection() {
+    const { t } = useLanguage();
     const TOOLS = [
         { name: "get_pool_intelligence", desc: "Returns current dynamic fee, volatility score, and IL exposure", params: "poolId: string" },
         { name: "get_agent_status", desc: "Agent uptime, nonces burned, last block", params: "—" },
@@ -426,11 +424,11 @@ function McpSection() {
                 Model Context Protocol (MCP) allows external AIs (Claude Desktop, Cursor IDE) to interact directly with the HookMind agent daemon securely.
             </div>
             <div className="grid md:grid-cols-2 gap-4">
-                {TOOLS.map((t, i) => (
+                {TOOLS.map((tool, i) => (
                     <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-5">
-                        <div className="font-mono font-bold text-neural-magenta mb-2">{t.name}</div>
-                        <div className="text-xs text-neural-cyan font-mono mb-2">Params: {t.params}</div>
-                        <div className="text-xs text-gray-400">{t.desc}</div>
+                        <div className="font-mono font-bold text-neural-magenta mb-2">{tool.name}</div>
+                        <div className="text-xs text-neural-cyan font-mono mb-2">Params: {tool.params}</div>
+                        <div className="text-xs text-gray-400">{tool.desc}</div>
                     </div>
                 ))}
             </div>
@@ -439,6 +437,7 @@ function McpSection() {
 }
 
 function SdkSection() {
+    const { t } = useLanguage();
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="glass-card p-6">
@@ -456,22 +455,23 @@ function SdkSection() {
 }
 
 function FeesSection() {
+    const { t } = useLanguage();
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="glass-card p-6">
                 <h2 className="text-xl font-black mb-4 flex items-center gap-2"><DollarSign className="text-amber-400" /> HookMindFees.sol</h2>
-                <p className="text-gray-400 mb-6 text-sm">A centralized fee distributor contract managing all protocol revenue streams.</p>
+                <p className="text-gray-400 mb-6 text-sm">{t.docs.overview.rev_card_1_desc}</p>
 
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="bg-white/5 border border-amber-500/30 p-5 rounded-xl">
-                        <h3 className="font-bold text-amber-400 mb-2">Agent Deployment License</h3>
-                        <div className="text-2xl font-black text-white mb-2">5 USDC</div>
-                        <p className="text-xs text-gray-500 font-mono">Paid once per new EOA operator node registered to the network.</p>
+                        <h3 className="font-bold text-amber-400 mb-2">{t.docs.overview.rev_card_1_title}</h3>
+                        <div className="text-2xl font-black text-white mb-2">{t.docs.overview.rev_card_1_price}</div>
+                        <p className="text-xs text-gray-500 font-mono">{t.docs.overview.rev_card_1_desc}</p>
                     </div>
                     <div className="bg-white/5 border border-emerald-500/30 p-5 rounded-xl">
-                        <h3 className="font-bold text-emerald-400 mb-2">Signal Marketplace</h3>
-                        <div className="text-2xl font-black text-white mb-2">1% Cut</div>
-                        <p className="text-xs text-gray-500 font-mono">Commission deducted automatically on peer-to-peer strategy/signal subscriptions.</p>
+                        <h3 className="font-bold text-emerald-400 mb-2">{t.docs.overview.rev_card_2_title}</h3>
+                        <div className="text-2xl font-black text-white mb-2">{t.docs.overview.rev_card_2_price}</div>
+                        <p className="text-xs text-gray-500 font-mono">{t.docs.overview.rev_card_2_desc}</p>
                     </div>
                 </div>
             </div>
@@ -480,6 +480,7 @@ function FeesSection() {
 }
 
 function SecuritySection() {
+    const { t } = useLanguage();
     const MATRIX = [
         { v: "Unauthorized Fee Changes", p: "ECDSA logic inside smart contract. Only registered agent EOAs can submitAgentSignal()" },
         { v: "Replay Attacks", p: "Atomic on-chain nonce per agent. Signatures instantly become invalid after use." },
@@ -491,7 +492,7 @@ function SecuritySection() {
     return (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             <div className="glass-card p-6">
-                <h3 className="font-bold text-lg mb-4 text-neural-red flex items-center gap-2"><Shield /> Threat Matrix</h3>
+                <h3 className="font-bold text-lg mb-4 text-neural-red flex items-center gap-2"><Shield /> {t.docs.security.threat_matrix}</h3>
                 <table className="w-full text-left font-mono text-xs border border-white/10 rounded-lg overflow-hidden block">
                     <tbody>
                         {MATRIX.map((m, i) => (
@@ -512,9 +513,24 @@ function SecuritySection() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function DocsContent() {
+    const { t } = useLanguage();
     const searchParams = useSearchParams();
     const router = useRouter();
     const activeTabId = searchParams.get("tab") || "overview";
+
+    const TABS = useMemo(() => [
+        { id: "overview", label: t.docs.tabs.overview, icon: Book },
+        { id: "quickstart", label: t.docs.tabs.quickstart, icon: Rocket },
+        { id: "architecture", label: t.docs.tabs.architecture, icon: Layers },
+        { id: "contracts", label: t.docs.tabs.contracts, icon: Code },
+        { id: "agent", label: t.docs.tabs.agent, icon: Cpu },
+        { id: "builder", label: t.docs.tabs.builder, icon: Workflow },
+        { id: "api", label: t.docs.tabs.api, icon: Terminal },
+        { id: "mcp", label: t.docs.tabs.mcp, icon: Package },
+        { id: "sdk", label: t.docs.tabs.sdk, icon: Zap },
+        { id: "fees", label: t.docs.tabs.fees, icon: DollarSign },
+        { id: "security", label: t.docs.tabs.security, icon: Shield },
+    ], [t]);
 
     const setTab = (id: string) => {
         router.push(`/docs?tab=${id}`, { scroll: false });
@@ -527,7 +543,7 @@ function DocsContent() {
             case "architecture": return <ArchitectureSection />;
             case "contracts": return <ContractsSection />;
             case "agent": return <AgentSection />;
-            case "builder": return <div className="glass-card p-10 text-center"><Workflow className="mx-auto text-neural-magenta mb-4" size={48} /><h2 className="text-xl font-bold">See Interactive Hook Builder</h2><Link href="/builder" className="inline-block mt-4 px-6 py-2 bg-neural-magenta text-black font-bold rounded-lg hover:scale-105 transition-transform">Go to Builder</Link></div>;
+            case "builder": return <div className="glass-card p-10 text-center"><Workflow className="mx-auto text-neural-magenta mb-4" size={48} /><h2 className="text-xl font-bold">{t.docs.builder.title}</h2><Link href="/builder" className="inline-block mt-4 px-6 py-2 bg-neural-magenta text-black font-bold rounded-lg hover:scale-105 transition-transform">{t.docs.builder.button}</Link></div>;
             case "api": return <ApiSection />;
             case "mcp": return <McpSection />;
             case "sdk": return <SdkSection />;
@@ -566,10 +582,10 @@ function DocsContent() {
                 <div className="mb-8">
                     <div className="inline-flex items-center gap-2 neon-badge mb-3">
                         <span className="w-1.5 h-1.5 rounded-full bg-neural-cyan animate-pulse" />
-                        PROTOCOL DOCUMENTATION
+                        {t.docs.hero_badge}
                     </div>
                     <h1 className="text-3xl md:text-5xl font-black tracking-tighter">
-                        {TABS.find(t => t.id === activeTabId)?.label}
+                        {TABS.find(tab => tab.id === activeTabId)?.label}
                     </h1>
                 </div>
 

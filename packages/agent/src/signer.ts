@@ -7,25 +7,19 @@ import { encodePacked, keccak256, type Account } from "viem";
 import { signMessage } from "viem/accounts";
 interface SignalParams {
     poolId: `0x${string}`;
-    feeBps: number;
-    volatility: number;
+    fee: number;
     ilProtect: boolean;
-    ipfsCID: string;
-    nonce: bigint;
     chainId: number;
 }
 export class AgentSigner {
     constructor(private readonly account: Account) { }
     async signSignal(params: SignalParams): Promise<`0x${string}`> {
         const msgHash = keccak256(encodePacked(
-            ["bytes32", "uint24", "uint256", "bool", "string", "uint256", "uint256"],
+            ["bytes32", "uint24", "bool", "uint256"],
             [
                 params.poolId,
-                params.feeBps,
-                BigInt(params.volatility),
+                params.fee,
                 params.ilProtect,
-                params.ipfsCID,
-                params.nonce,
                 BigInt(params.chainId),
             ]
         ));
