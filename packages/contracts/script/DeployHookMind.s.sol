@@ -32,7 +32,8 @@ contract DeployHookMind is Script {
             Hooks.BEFORE_SWAP_FLAG       |
             Hooks.AFTER_SWAP_FLAG        |
             Hooks.AFTER_ADD_LIQUIDITY_FLAG   |
-            Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
+            Hooks.AFTER_REMOVE_LIQUIDITY_FLAG |
+            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
 
         // Constructor args for MINING (vault/insurance set to 0 to avoid circularity)

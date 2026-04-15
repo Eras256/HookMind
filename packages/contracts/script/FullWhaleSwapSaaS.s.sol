@@ -95,18 +95,27 @@ contract FullWhaleSwapSaaS is Script {
 
         // 3.5 Submit Agent Signal to ACTIVATE IL Protection!
         uint256 agentKey = vm.envUint("AGENT_PRIVATE_KEY");
-        // Create matching message hash for updateNeuralState
-        bytes32 msgHash = keccak256(abi.encodePacked(
-            key.toId(), uint24(3000), true, block.chainid
+        // Create matching message hash for updateNeuralState.
+        // Must include ALL 7 params in EXACT order as HookMindCore.updateNeuralState:
+        //   pid, newFee, volatilityScore, ilProtect, ipfsCID, nonce, chainid
+        bytes32 rawHash = keccak256(abi.encodePacked(
+            key.toId(),     // bytes32 pid
+            uint24(3000),   // uint24  newFee
+            uint256(5000),  // uint256 volatilityScore
+            true,           // bool    ilProtect
+            "ipfs://Qmxyz", // string  ipfsCID
+            uint256(0),     // uint256 nonce  (first signal from this agent)
+            block.chainid   // uint256 chainid
         ));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            agentKey,
-            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", msgHash))
+        // toEthSignedMessageHash equivalent: prefix rawHash then sign
+        bytes32 prefixedHash = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32", rawHash)
         );
-        
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(agentKey, prefixedHash);
+
         // We call it as deployer (anyone can submit since agent signed it)
         try HookMindCore(HOOK).updateNeuralState(
-            key, 3000, true, abi.encodePacked(r, s, v)
+            key, 3000, 5000, true, "ipfs://Qmxyz", 0, abi.encodePacked(r, s, v)
         ) {
             console2.log("Agent Signal Submitted: IL Protection ACTIVATED!");
         } catch Error(string memory reason) {

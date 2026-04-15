@@ -86,3 +86,23 @@ export function useHookMind() {
     address
   };
 }
+
+export function usePoolIntelligence(poolId: `0x${string}`) {
+  return useReadContract({
+    address: HOOK_MIND_CORE_ADDRESS,
+    abi: HOOK_MIND_CORE_ABI,
+    functionName: 'poolIntelligence',
+    args: [poolId],
+    query: { refetchInterval: 5000 }
+  });
+}
+
+export function useDynamicFee(poolId: `0x${string}`) {
+  return useReadContract({
+    address: HOOK_MIND_CORE_ADDRESS,
+    abi: HOOK_MIND_CORE_ABI,
+    functionName: 'currentDynamicFee',
+    args: [poolId],
+    query: { refetchInterval: 5000 }
+  });
+}

@@ -11,7 +11,6 @@ import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
 import {BeforeSwapDelta, BeforeSwapDeltaLibrary} from "v4-core/src/types/BeforeSwapDelta.sol";
 import {SwapParams, ModifyLiquidityParams} from "v4-core/src/types/PoolOperation.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -28,7 +27,7 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
     using ECDSA for bytes32;
     using MessageHashUtils for bytes32;
     // ─── State ───────────────────────────────────────────────────────────────
-    AgentRegistry public immutable agentRegistry;
+    AgentRegistry public immutable AGENT_REGISTRY;
     YieldVault    public yieldVault;
     ILInsurance   public ilInsurance;
     address public admin;
@@ -49,6 +48,9 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
     // O(1) Mapping for ultra-fast hook reads (respects Unichain 1s blocks)
     mapping(PoolId => uint24) public currentDynamicFee;
 
+    // Agent Replay Protection
+    mapping(address => uint256) public agentNonces;
+
     // Minimum seconds between AI agent updates per pool (prevents spam)
     uint256 public constant MIN_UPDATE_INTERVAL = 0; // Set to 0 for demo/testnet
     // Dynamic fee boundaries
@@ -61,7 +63,7 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
         uint24 newFeeBps,
         uint256 volatilityScore,
         bool ilProtectionActive,
-        string ipfsCID
+        string ipfsCid
     );
     event ILProtectionTriggered(PoolId indexed poolId, int256 deltaExposure);
     event FeesRouteToVault(PoolId indexed poolId, uint256 amount);
@@ -81,7 +83,7 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
         address        _admin,
         address        _protocolTreasury
     ) BaseHook(_poolManager) {
-        agentRegistry  = _agentRegistry;
+        AGENT_REGISTRY  = _agentRegistry;
         yieldVault     = _yieldVault;
         ilInsurance    = _ilInsurance;
         admin          = _admin;
@@ -111,7 +113,7 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
             afterSwap:                true,
             beforeDonate:             false,
             afterDonate:              false,
-            beforeSwapReturnDelta:    false,
+            beforeSwapReturnDelta:    true,
             afterSwapReturnDelta:     false,
             afterAddLiquidityReturnDelta:    false,
             afterRemoveLiquidityReturnDelta: false
@@ -144,7 +146,7 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
     function _beforeSwap(
         address,
         PoolKey calldata key,
-        SwapParams calldata,
+        SwapParams calldata params,
         bytes calldata
     ) internal override whenNotPaused
       returns (bytes4, BeforeSwapDelta, uint24) {
@@ -158,9 +160,20 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
             tstore(FEE_SLOT, dynamicFee)
         }
 
+        BeforeSwapDelta hookDelta = BeforeSwapDeltaLibrary.ZERO_DELTA;
+        
+        PoolIntelligence memory intel = poolIntelligence[pid];
+        // Active Spread Control via BeforeSwapDelta:
+        // By returning a non-zero delta, we can modify the amountSpecified of the swap
+        // dynamically (e.g. reserving a spread when volatility > 7000)
+        // Here we keep ZERO for simplicity, but the primitive is activated.
+        if (intel.volatilityScore > 7000 && params.amountSpecified > 0) {
+            // e.g., hookDelta = toBeforeSwapDelta(int128(params.amountSpecified * 1 / 10000), 0);
+        }
+
         return (
             IHooks.beforeSwap.selector,
-            BeforeSwapDeltaLibrary.ZERO_DELTA,
+            hookDelta,
             dynamicFee | LPFeeLibrary.OVERRIDE_FEE_FLAG
         );
     }
@@ -200,7 +213,7 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
 
         // IL protection check
         if (poolIntelligence[pid].ilProtectionActive) {
-            int256 ilExposure = _estimateILDelta(delta);
+            int256 ilExposure = _estimateIlDelta(delta);
             if (ilExposure > 1e15) {
                 // Signals indexers (The Graph) to notify agent daemon off-chain
             }
@@ -216,7 +229,13 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
         BalanceDelta,
         bytes calldata
     ) internal override returns (bytes4, BalanceDelta) {
-        ilInsurance.enrollLP(sender, key.toId(), uint128(-delta.amount0()));
+        // When adding liquidity, delta.amount0() is negative (tokens flow into pool).
+        // Guard against edge cases where the sign is unexpected to avoid uint128 overflow.
+        int128 d0 = delta.amount0();
+        // forge-lint: disable-next-line(unsafe-typecast)
+        // safe: -d0 ≥ 0 because d0 < 0 is verified above; type(int128).min is excluded by v4 invariants
+        uint128 entryAmount = d0 < 0 ? uint128(-d0) : 0;
+        ilInsurance.enrollLp(sender, key.toId(), entryAmount);
         return (IHooks.afterAddLiquidity.selector, delta);
     }
     /// @notice After remove liquidity: calculate and request IL insurance payout
@@ -236,27 +255,38 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
     /// @dev ECDSA verification confirms signature from authorized agent.
     /// @param key          The Uniswap v4 pool to update
     /// @param newFee       AI-recommended dynamic fee (in pips)
+    /// @param volatilityScore Evaluated volatility score by the AI model
     /// @param ilProtect    Whether to activate IL protection this epoch
+    /// @param ilProtect    Whether to activate IL protection this epoch
+    /// @param ipfsCid      The off-chain audit logs CID
+    /// @param nonce        Linear nonce to prevent replay attacks
     /// @param signature    ECDSA signature by the agent's registered EOA
     function updateNeuralState(
         PoolKey calldata key,
         uint24  newFee,
+        uint256 volatilityScore,
         bool    ilProtect,
+        string  calldata ipfsCid,
+        uint256 nonce,
         bytes   calldata signature
     ) external nonReentrant whenNotPaused {
         PoolId pid = key.toId();
         
         // 1. Reconstruct and verify ECDSA signature (O(N) off-chain overhead, O(1) in swap)
         bytes32 msgHash = keccak256(abi.encodePacked(
-            pid, newFee, ilProtect, block.chainid
+            pid, newFee, volatilityScore, ilProtect, ipfsCid, nonce, block.chainid
         )).toEthSignedMessageHash();
         
         address signer = msgHash.recover(signature);
 
         // 2. Verify the signer is a registered active agent
-        if (!agentRegistry.hasRole(agentRegistry.AGENT_OPERATOR_ROLE(), signer)) {
+        if (!AGENT_REGISTRY.hasRole(AGENT_REGISTRY.AGENT_OPERATOR_ROLE(), signer)) {
             revert NotAgentOperator();
         }
+        
+        // 3. Replay Protection
+        if (nonce != agentNonces[signer]) revert UpdateTooFrequent();
+        agentNonces[signer]++;
 
         // 3. Verify fee is within safe bounds
         if (newFee < MIN_FEE || newFee > MAX_FEE) revert InvalidFeeRange();
@@ -269,13 +299,14 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
 
         // 5. Update State
         intel.targetFeeBps       = newFee;
+        intel.volatilityScore    = volatilityScore;
         intel.ilProtectionActive = ilProtect;
         intel.lastAgentUpdate    = block.timestamp;
         
         // Update the cached fee for O(1) hook access
         currentDynamicFee[pid]   = newFee;
 
-        emit AgentSignalProcessed(pid, signer, newFee, 0, ilProtect, "");
+        emit AgentSignalProcessed(pid, signer, newFee, volatilityScore, ilProtect, ipfsCid);
     }
     // ─── Internal Helpers ─────────────────────────────────────────────────────
     function _computeFeeAmount(
@@ -287,7 +318,7 @@ contract HookMindCore is BaseHook, ReentrancyGuard, Pausable {
         ));
         return (grossSwap * feeBps) / 1_000_000;
     }
-    function _estimateILDelta(BalanceDelta delta) internal pure returns (int256) {
+    function _estimateIlDelta(BalanceDelta delta) internal pure returns (int256) {
         return int256(int128(delta.amount0())) + int256(int128(delta.amount1()));
     }
     // ─── Admin ────────────────────────────────────────────────────────────────

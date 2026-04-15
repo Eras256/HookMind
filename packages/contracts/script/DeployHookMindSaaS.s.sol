@@ -38,7 +38,8 @@ contract DeployHookMindSaaS is Script {
             Hooks.BEFORE_SWAP_FLAG       |
             Hooks.AFTER_SWAP_FLAG        |
             Hooks.AFTER_ADD_LIQUIDITY_FLAG   |
-            Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
+            Hooks.AFTER_REMOVE_LIQUIDITY_FLAG |
+            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
 
         bytes memory miningArgs = abi.encode(

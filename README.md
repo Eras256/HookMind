@@ -14,12 +14,13 @@
 Traditional liquidity provision is static and reactive. **HookMind** transforms Uniswap v4 pools from passive AMMs into **proactive neural meshes**. By decoupling heavy AI computation (LLMs & Variance Analysis) from the swap path, HookMind achieves institutional-grade intelligence without sacrificing the **1s block times of Unichain**.
 
 The protocol introduces a **4-Layer Autonomous Stack**:
-1. **Intelligence Layer**: Multi-LLM agents (Claude 3.5/GPT-4o) analyzing volatility.
-2. **Registry Layer**: 1-Click SaaS registration with native ETH activation.
-3. **Execution Layer**: Uniswap v4 Hooks with EIP-1153 Transient Storage.
+1. **Intelligence Layer**: Multi-LLM agents using the **Predictive Inventory Model** $\Delta Fee$.
+2. **Registry Layer**: 1-Click SaaS registration with native ETH activation & anti-replay nonces.
+3. **Execution Layer**: Uniswap v4 Hooks with `BeforeSwapReturnDelta` (Asymmetric spreads).
 4. **Security Layer**: Prorated IL Insurance and Fee-Smoothing Yield Vaults.
 
-**[Read the Full Technical Paper here →](TECHNICAL_PAPER.md)**
+**[Read the Full Whitepaper here →](WHITEPAPER.md)**
+**[Read the Impact Analysis here →](IMPACT_ANALYSIS.md)**
 
 ---
 
@@ -27,10 +28,10 @@ The protocol introduces a **4-Layer Autonomous Stack**:
 
 | Contract | Address | Description |
 | :--- | :--- | :--- |
-| **HookMindCore** | [`0x450113E691b4be42EB9ca3a3E0F585a2D79915c0`](https://unichain-sepolia.blockscout.com/address/0x450113E691b4be42EB9ca3a3E0F585a2D79915c0) | The central v4 Hook managing dynamic fees and LP protection. |
-| **AgentRegistry** | [`0xeF00B7Cea0B1AB51340619b7afD48c0a5dfCc013`](https://unichain-sepolia.blockscout.com/address/0xeF00B7Cea0B1AB51340619b7afD48c0a5dfCc013) | Decoupled RBAC for authorized AI Agent operators. |
-| **YieldVault** | [`0xB4637368A6cFbfae9A9218F87CA77d813Bed7877`](https://unichain-sepolia.blockscout.com/address/0xB4637368A6cFbfae9A9218F87CA77d813Bed7877) | ERC-4626 Vault using **Flash Accounting** for zero-gas fee routing. |
-| **ILInsurance** | [`0x6A919739d655b9073135679ca0c8C5aB33448844`](https://unichain-sepolia.blockscout.com/address/0x6A919739d655b9073135679ca0c8C5aB33448844) | Solvent insurance pool with **Prorated Payouts** and risk caps. |
+| **HookMindCore** | [`0xf9e8768686d0138ee041898a906ddd78519955c8`](https://unichain-sepolia.blockscout.com/address/0xf9e8768686d0138ee041898a906ddd78519955c8) | The central v4 Hook managing dynamic fees and LP protection. |
+| **AgentRegistry** | [`0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e`](https://unichain-sepolia.blockscout.com/address/0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e) | Decoupled RBAC for authorized AI Agent operators. |
+| **YieldVault** | [`0xa0242258bc39d2b2daaf4913f30803f77b01a79b`](https://unichain-sepolia.blockscout.com/address/0xa0242258bc39d2b2daaf4913f30803f77b01a79b) | ERC-4626 Vault using **Flash Accounting** for zero-gas fee routing. |
+| **ILInsurance** | [`0x42aa32c49e993936d23a3cc746173c6954a07eef`](https://unichain-sepolia.blockscout.com/address/0x42aa32c49e993936d23a3cc746173c6954a07eef) | Solvent insurance pool with **Prorated Payouts** and risk caps. |
 
 ---
 
@@ -51,8 +52,8 @@ Liquidity provider fees are not immediately dumped. The **YieldVault** implement
 ### 5. Prorated IL Insurance
 LPs can enroll in the **ILInsurance** pool. In the event of extreme volatility, losses are compensated using an **Epoch-based Prorating Formula**, ensuring pool solvency even during black-swan events. 
 
-### 6. Neural Guardrails (Flash Loan Protection)
-The Agent Node implements a **Heuristic Deviation Filter**. Updates are automatically aborted if block price movements exceed 15%, protecting the neural mesh from flash-loan-induced manipulation.
+### 6. Neural Guardrails & Replay Protection
+The Agent Node implements a **Heuristic Deviation Filter**. Updates are automatically aborted if block price movements exceed 15% from TWAP, protecting the neural mesh from flash-loan-induced manipulation. Signals are protected from replay attacks natively via state nonces.
 
 ---
 

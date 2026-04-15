@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Zap, Activity, Shield, Cpu, Terminal, Plus, Lock, X, Trophy, ChevronRight } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { useHookMind } from "@/hooks/useHookMind";
+import { useHookMind, usePoolIntelligence, useDynamicFee } from "@/hooks/useHookMind";
 import { parseUnits, formatEther } from "viem";
 import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
 import { useWriteContract, useReadContract } from "wagmi";
@@ -224,15 +224,37 @@ function DashboardContent() {
         const interval = setInterval(() => {
             const event = MOCK_EVENTS[Math.floor(Math.random() * MOCK_EVENTS.length)]();
             setLogs(prev => [event, ...prev].slice(0, 50));
-            setLiveStats(prev => ({
-                ...prev,
-                currentFee: Math.floor(500 + Math.random() * 9500),
-                volatilityScore: Math.floor(1000 + Math.random() * 9000),
-            }));
         }, 12000); // Unichain block time approx
 
         return () => clearInterval(interval);
     }, []);
+
+    // Fetch live on-chain Neural State from HookMindCore
+    // Newly initialized WETH/USDC pool on Unichain Sepolia
+    const TARGET_POOL_ID = "0x708bf64c64d28d2805d4e6e79690dcd2d84c1204e4a7f2dd8d424c38eb7851cb" as `0x${string}`;
+    const { data: poolIntelligenceData } = usePoolIntelligence(TARGET_POOL_ID);
+    const { data: feeData } = useDynamicFee(TARGET_POOL_ID);
+
+    const intel = poolIntelligenceData as readonly [bigint, bigint, bigint, boolean, string] | undefined;
+
+    useEffect(() => {
+        if (intel) {
+            setLiveStats(prev => ({
+                ...prev,
+                volatilityScore: Number(intel[0]) || prev.volatilityScore,
+                ilProtection: intel[3] !== undefined ? intel[3] : prev.ilProtection
+            }));
+        }
+    }, [intel]);
+
+    useEffect(() => {
+        if (feeData) {
+            setLiveStats(prev => ({
+                ...prev,
+                currentFee: Number(feeData) || prev.currentFee
+            }));
+        }
+    }, [feeData]);
 
     // 2. Load Fleet from localStorage
     useEffect(() => {

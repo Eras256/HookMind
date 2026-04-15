@@ -126,7 +126,7 @@ export class AgentEngine {
         log.info("🧠 Step 3 — Querying Neural Provider with Verified Data...");
         const llmDecision = await this.llmRouter.query({
             systemPrompt: AGENT_SYSTEM_PROMPT,
-            userMessage: JSON.stringify(analysis.jsonPayload, null, 2),
+            userMessage: buildLLMMessage(poolState, analysis, twap, ilExposure),
         });
         log.info(`  → LLM decision: fee=${llmDecision.feeBps}bps, IL=${llmDecision.activateIL}`);
         this.wsServer.broadcast({ type: "llm_decision", data: llmDecision });
@@ -153,18 +153,35 @@ export class AgentEngine {
         // ── STEP 5: Sign the hook signal with ECDSA ────────────────────────────
         log.info("✍️  Step 5 — Signing agent signal...");
         log.info(`  → Params: pool=${poolKeyHash}, fee=${llmDecision.feeBps}, IL=${llmDecision.activateIL}, chain=${this.chain.id}`);
+        const HOOK_ABI = parseAbi([
+            "function updateNeuralState((address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) key, uint24 newFee, uint256 volatilityScore, bool ilProtect, string ipfsCID, uint256 nonce, bytes signature) external",
+            "function agentNonces(address operator) view returns (uint256)"
+        ]);
+        
+        let nonce = 0n;
+        try {
+            nonce = await this.client.readContract({
+                address: hookAddress,
+                abi: HOOK_ABI,
+                functionName: "agentNonces",
+                args: [this.account.address]
+            }) as bigint;
+        } catch (e) {
+            log.warn(`Could not fetch nonce, defaulting to 0`);
+        }
+
         const signature = await this.signer.signSignal({
             poolId: poolKeyHash,
             fee: llmDecision.feeBps,
+            volatilityScore: volatilityScore,
             ilProtect: llmDecision.activateIL,
+            ipfsCID: cid,
+            nonce: nonce,
             chainId: this.chain.id,
         });
 
         // ── STEP 6: Submit signal to HookMindCore on-chain (Asynchronous Update)
-        log.info("⛓️  Step 6 — Submitting on-chain neural state update...");
-        const HOOK_ABI = parseAbi([
-            "function updateNeuralState((address currency0,address currency1,uint24 fee,int24 tickSpacing,address hooks) key, uint24 newFee, bool ilProtect, bytes signature) external",
-        ]);
+        log.info(`⛓️  Step 6 — Submitting on-chain neural state update (Nonce: ${nonce})...`);
         const txHash = await this.walletClient.writeContract({
             address: hookAddress,
             abi: HOOK_ABI,
@@ -172,7 +189,10 @@ export class AgentEngine {
             args: [
                 poolState.key,
                 llmDecision.feeBps,
+                BigInt(volatilityScore),
                 llmDecision.activateIL,
+                cid,
+                nonce,
                 signature,
             ],
         });

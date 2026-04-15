@@ -4,19 +4,22 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {ERC20}   from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20}  from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Math}    from "@openzeppelin/contracts/utils/math/Math.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// @title YieldVault — ERC-4626 Fee Smoothing Vault (UHI9 innovation)
 /// @notice Core innovation: LP fees are NOT distributed immediately.
 ///         They drip-release over 7-day epochs, creating stable, predictable yield.
 ///         Inspired by YieldBasis fixed-income design + UHI9 fee-smoothing hook concept.
 contract YieldVault is ERC4626 {
     using Math for uint256;
+    using SafeERC20 for IERC20;
+    
     uint256 public constant EPOCH_DURATION = 7 days;
     uint256 public epochStart;
     uint256 public epochFeesAccrued;
     uint256 public epochFeesReleased;
     // Hook address — only hook can deposit fees
-    address public immutable hook;
-    address public immutable admin;
+    address public immutable HOOK;
+    address public immutable ADMIN;
     event EpochStarted(uint256 timestamp, uint256 previousEpochFees);
     event FeeDeposited(uint256 amount, uint256 epochTotal);
     event YieldClaimed(address indexed lp, uint256 amount);
@@ -27,14 +30,14 @@ contract YieldVault is ERC4626 {
         address _hook,
         address _admin
     ) ERC4626(_usdc) ERC20("HookMind Yield Shares", "hmYIELD") {
-        hook       = _hook;
-        admin      = _admin;
+        HOOK       = _hook;
+        ADMIN      = _admin;
         epochStart = block.timestamp;
     }
     /// @notice Called by HookMindCore afterSwap to deposit accrued fees
     function depositFees(uint256 amount) external {
-        if (msg.sender != hook) revert OnlyHook();
-        IERC20(asset()).transferFrom(msg.sender, address(this), amount);
+        if (msg.sender != HOOK) revert OnlyHook();
+        IERC20(asset()).safeTransferFrom(msg.sender, address(this), amount);
         epochFeesAccrued += amount;
         emit FeeDeposited(amount, epochFeesAccrued);
     }

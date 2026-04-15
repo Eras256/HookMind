@@ -21,7 +21,10 @@ const limiter = rateLimit({
 });
 app.use("/api/", limiter);
 
-const JWT_SECRET = process.env.API_JWT_SECRET || "hookmind_institutional_secret_key_2026";
+const JWT_SECRET = process.env.API_JWT_SECRET;
+if (!JWT_SECRET) {
+    throw new Error("API_JWT_SECRET environment variable is required. Set it in your .env file.");
+}
 
 // Auth Middleware para los Institucionales
 const authenticateJWT = (req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -55,6 +55,23 @@ export class VolatilityStrategy {
     }
 
     /**
+     * computeTWAPAgreement
+     * Returns a score 0-10000 representing how closely the spot price matches TWAP.
+     * 10000 = perfectly matched (safe)
+     * 0 = totally divorced from TWAP (dangerous)
+     * @param spotPrice Current spot price
+     * @param twap 10-minute TWAP
+     */
+    public computeTWAPAgreement(spotPrice: number, twap: number): number {
+        if (twap === 0) return 10000;
+        const diff = Math.abs(spotPrice - twap) / twap;
+        // If diff > 10%, agreement is 0
+        if (diff >= 0.1) return 0;
+        // else scale linearly from 0 to 10000
+        return Math.floor((1 - (diff / 0.1)) * 10000);
+    }
+
+    /**
      * Data Pre-processor for the LLM
      */
     public processWindow(spotPrice: number, history: number[], twap: number): {
@@ -62,6 +79,7 @@ export class VolatilityStrategy {
         variance: number;
         manipulated: boolean;
         cleanPrice: number;
+        twapAgreement: number;
     } {
         const manipulated = this.isDataManipulated(spotPrice, history);
         
@@ -74,11 +92,14 @@ export class VolatilityStrategy {
         const stdDev = Math.sqrt(variance);
         const score = Math.min(10000, Math.round((stdDev / 0.05) * 10000));
 
+        const twapAgreement = this.computeTWAPAgreement(spotPrice, twap);
+
         return {
             score,
             variance,
             manipulated,
-            cleanPrice
+            cleanPrice,
+            twapAgreement
         };
     }
 }

@@ -69,10 +69,10 @@ HookMind operates on a strictly non-custodial Technological Infrastructure model
 
 | Component | Deployment Address | Technical Role |
 | :--- | :--- | :--- |
-| **HookMindCore** | [`0x450113E691b4be42EB9ca3a3E0F585a2D79915c0`](https://unichain-sepolia.blockscout.com/address/0x450113E691b4be42EB9ca3a3E0F585a2D79915c0) | Primary entry point for `beforeSwap` and `afterSwap` logic. |
-| **AgentRegistry** | [`0xeF00B7Cea0B1AB51340619b7afD48c0a5dfCc013`](https://unichain-sepolia.blockscout.com/address/0xeF00B7Cea0B1AB51340619b7afD48c0a5dfCc013) | RBAC contract enforcing ECDSA signature validity for agent updates. |
-| **YieldVault** | [`0xB4637368A6cFbfae9A9218F87CA77d813Bed7877`](https://unichain-sepolia.blockscout.com/address/0xB4637368A6cFbfae9A9218F87CA77d813Bed7877) | Yield-generating buffer for automated fee compounding. |
-| **ILInsurance** | [`0x6A919739d655b9073135679ca0c8C5aB33448844`](https://unichain-sepolia.blockscout.com/address/0x6A919739d655b9073135679ca0c8C5aB33448844) | Probabilistic insurance pool for LP loss mitigation. |
+| **HookMindCore** | [`0xf9e8768686d0138ee041898a906ddd78519955c8`](https://unichain-sepolia.blockscout.com/address/0xf9e8768686d0138ee041898a906ddd78519955c8) | Primary entry point for `beforeSwap` and `afterSwap` logic. |
+| **AgentRegistry** | [`0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e`](https://unichain-sepolia.blockscout.com/address/0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e) | RBAC contract enforcing ECDSA signature validity for agent updates. |
+| **YieldVault** | [`0xa0242258bc39d2b2daaf4913f30803f77b01a79b`](https://unichain-sepolia.blockscout.com/address/0xa0242258bc39d2b2daaf4913f30803f77b01a79b) | Yield-generating buffer for automated fee compounding. |
+| **ILInsurance** | [`0x42aa32c49e993936d23a3cc746173c6954a07eef`](https://unichain-sepolia.blockscout.com/address/0x42aa32c49e993936d23a3cc746173c6954a07eef) | Probabilistic insurance pool for LP loss mitigation. |
 
 ---
 

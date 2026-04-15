@@ -1,9 +1,9 @@
-export const HOOK_MIND_CORE_ADDRESS = "0x450113E691b4be42EB9ca3a3E0F585a2D79915c0" as const;
-export const AGENT_REGISTRY_ADDRESS = "0xeF00B7Cea0B1AB51340619b7afD48c0a5dfCc013" as const;
-export const YIELD_VAULT_ADDRESS = "0xB4637368A6cFbfae9A9218F87CA77d813Bed7877" as const;
-export const IL_INSURANCE_ADDRESS = "0x6A919739d655b9073135679ca0c8C5aB33448844" as const;
+export const HOOK_MIND_CORE_ADDRESS = "0xf9e8768686d0138ee041898a906ddd78519955c8" as const;
+export const AGENT_REGISTRY_ADDRESS = "0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e" as const;
+export const YIELD_VAULT_ADDRESS = "0xa0242258bc39d2b2daaf4913f30803f77b01a79b" as const;
+export const IL_INSURANCE_ADDRESS = "0x42aa32c49e993936d23a3cc746173c6954a07eef" as const;
 export const POOL_MANAGER_ADDRESS = "0x00B036B58a818B1BC34d502D3fE730Db729e62AC" as const;
-export const USDC_ADDRESS = "0x31d0220469e10c4E71834a79b1f276d740d3768F" as const;
+export const USDC_ADDRESS = "0x86dd85969a254258383ef3dff357671cb5161f88" as const;
 
 import HookMindCore from "./abis/HookMindCore.json";
 import AgentRegistry from "./abis/AgentRegistry.json";

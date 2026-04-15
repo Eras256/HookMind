@@ -27,7 +27,7 @@ contract HookMindCoreTest is Test, Deployers {
     PoolKey poolKey;
     PoolId  poolId;
     function setUp() public {
-        (agentKey,) = makeAddrAndKey("agent");
+        (, agentKey) = makeAddrAndKey("agent");
         // Deploy Uniswap v4 PoolManager via Deployers helper
         deployFreshManagerAndRouters();
         usdc     = new MockERC20("USDC", "USDC", 6);
@@ -38,13 +38,14 @@ contract HookMindCoreTest is Test, Deployers {
             Hooks.BEFORE_SWAP_FLAG |
             Hooks.AFTER_SWAP_FLAG |
             Hooks.AFTER_ADD_LIQUIDITY_FLAG |
-            Hooks.AFTER_REMOVE_LIQUIDITY_FLAG
+            Hooks.AFTER_REMOVE_LIQUIDITY_FLAG |
+            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
         address hookAddr = address(flags); // simplified for test environment
         vault     = new YieldVault(usdc, hookAddr, admin);
         insurance = new ILInsurance(usdc, hookAddr, admin);
         // Deploy hook via create2 at the exact mined address
-        deployCodeTo("HookMindCore.sol", abi.encode(
+        deployCodeTo("HookMindCore.sol:HookMindCore", abi.encode(
             manager, registry, vault, insurance, admin, admin
         ), hookAddr);
         hook = HookMindCore(hookAddr);
@@ -65,15 +66,15 @@ contract HookMindCoreTest is Test, Deployers {
     }
     /// @notice CORE INVARIANT: fee must always be within [MIN_FEE, MAX_FEE]
     function invariant_fee_within_bounds() public view {
-        HookMindCore.PoolIntelligence memory intel =
+        (uint24 targetFeeBps, , , , ) =
             hook.poolIntelligence(poolId);
-        assertGe(intel.targetFeeBps, hook.MIN_FEE(), "Fee below minimum");
-        assertLe(intel.targetFeeBps, hook.MAX_FEE(), "Fee above maximum");
+        assertGe(targetFeeBps, hook.MIN_FEE(), "Fee below minimum");
+        assertLe(targetFeeBps, hook.MAX_FEE(), "Fee above maximum");
     }
     /// @notice CORE INVARIANT: pool initialized after afterInitialize
     function invariant_pool_always_initialized() public view {
-        HookMindCore.PoolIntelligence memory intel = hook.poolIntelligence(poolId);
-        assertGt(intel.lastAgentUpdate, 0, "Pool never initialized");
+        (, , uint256 lastAgentUpdate, , ) = hook.poolIntelligence(poolId);
+        assertGt(lastAgentUpdate, 0, "Pool never initialized");
     }
     /// @notice FUZZ: agent signal with random valid fees should always succeed
     function testFuzz_submitAgentSignal_validFee(uint24 fee) public {
@@ -87,10 +88,10 @@ contract HookMindCoreTest is Test, Deployers {
             keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", msgHash))
         );
         vm.prank(vm.addr(agentKey));
-        hook.submitAgentSignal(poolKey, fee, 5000, true, "ipfs://test", nonce,
+        hook.updateNeuralState(poolKey, fee, 5000, true, "ipfs://test", nonce,
                                abi.encodePacked(r, s, v));
-        HookMindCore.PoolIntelligence memory intel = hook.poolIntelligence(poolId);
-        assertEq(intel.targetFeeBps, fee);
+        (uint24 targetFeeBps, , , , ) = hook.poolIntelligence(poolId);
+        assertEq(targetFeeBps, fee);
     }
     /// @notice FUZZ: fees outside bounds must revert
     function testFuzz_submitSignal_outOfBounds_reverts(uint24 badFee) public {
@@ -105,27 +106,34 @@ contract HookMindCoreTest is Test, Deployers {
         );
         vm.prank(vm.addr(agentKey));
         vm.expectRevert(HookMindCore.InvalidFeeRange.selector);
-        hook.submitAgentSignal(poolKey, badFee, 5000, true, "ipfs://bad", nonce,
+        hook.updateNeuralState(poolKey, badFee, 5000, true, "ipfs://bad", nonce,
                                abi.encodePacked(r, s, v));
     }
     /// @notice Security: unauthorized address cannot submit signals
     function test_unauthorized_agent_reverts() public {
-        address attacker = makeAddr("attacker");
+        (address attacker, uint256 attackerKey) = makeAddrAndKey("attacker");
         vm.prank(attacker);
+        bytes32 msgHash = keccak256(abi.encodePacked(
+            poolId, uint24(3000), uint256(5000), true, "ipfs://evil", uint256(0), block.chainid
+        ));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
+            attackerKey,
+            keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", msgHash))
+        );
         vm.expectRevert(HookMindCore.NotAgentOperator.selector);
-        hook.submitAgentSignal(poolKey, 3000, 5000, true, "ipfs://evil", 0, "");
+        hook.updateNeuralState(poolKey, 3000, 5000, true, "ipfs://evil", 0, abi.encodePacked(r, s, v));
     }
     /// @notice Security: replayed nonce must revert
     function test_replay_attack_reverts() public {
         // first signal succeeds (nonce = 0)
-        _submitValidSignal(3000, 0);
+        bytes memory sig = _submitValidSignal(3000, 0);
         // replay with same nonce
         vm.prank(vm.addr(agentKey));
         vm.expectRevert(HookMindCore.UpdateTooFrequent.selector);
-        hook.submitAgentSignal(poolKey, 3000, 5000, true, "ipfs://replay", 0, "");
+        hook.updateNeuralState(poolKey, 3000, 5000, true, "ipfs://log", 0, sig);
     }
     // ─── Helpers ─────────────────────────────────────────────────────────────
-    function _submitValidSignal(uint24 fee, uint256 nonce) internal {
+    function _submitValidSignal(uint24 fee, uint256 nonce) internal returns (bytes memory) {
         bytes32 msgHash = keccak256(abi.encodePacked(
             poolId, fee, uint256(5000), true, "ipfs://log", nonce, block.chainid
         ));
@@ -134,7 +142,8 @@ contract HookMindCoreTest is Test, Deployers {
             keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", msgHash))
         );
         vm.prank(vm.addr(agentKey));
-        hook.submitAgentSignal(poolKey, fee, 5000, true, "ipfs://log", nonce,
-                               abi.encodePacked(r, s, v));
+        bytes memory sig = abi.encodePacked(r, s, v);
+        hook.updateNeuralState(poolKey, fee, 5000, true, "ipfs://log", nonce, sig);
+        return sig;
     }
 }

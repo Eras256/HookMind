@@ -5,16 +5,19 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title AgentRegistry (HookMind Infrastructure & SaaS Licensing)
 /// @notice Manages software licenses and P2P signal routing for autonomous AI agents.
 /// @dev Implements a strictly non-custodial model for technological infrastructure tolls.
 contract AgentRegistry is AccessControl, Pausable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant AGENT_OPERATOR_ROLE = keccak256("AGENT_OPERATOR_ROLE");
 
     // ─── Infrastructure Settings ─────────────────────────────────────────────
-    IERC20  public immutable softwareToken;      // Typically USDC
+    IERC20  public immutable SOFTWARE_TOKEN;      // Typically USDC
     address public protocolTreasury;             // Software license collector
     uint256 public activationFeeNative = 0.0015 ether; // ~ $5 USD in ETH
     uint256 public constant SOFTWARE_TOLL_BPS = 100;     // 1% Infrastructure Toll
@@ -34,13 +37,13 @@ contract AgentRegistry is AccessControl, Pausable, ReentrancyGuard {
 
     // Signal tracking
     mapping(address => uint256) public nonces;
-    mapping(address => string) public latestAuditCID;
+    mapping(address => string) public latestAuditCid;
 
     // ─── Events (SaaS & Marketplace) ─────────────────────────────────────────
     event AgentLicensingActivated(address indexed creator, address indexed operator, uint256 activationFee);
     event SignalMarketplacePurchase(address indexed buyer, address indexed operator, uint256 softwareToll, uint256 agentRevenue);
     event AgentDeactivated(address indexed operator);
-    event SignalRecorded(address indexed operator, uint256 nonce, string ipfsCID);
+    event SignalRecorded(address indexed operator, uint256 nonce, string ipfsCid);
     event SignalPriceUpdated(address indexed operator, uint256 newPrice);
 
     error AgentAlreadyRegistered();
@@ -52,7 +55,7 @@ contract AgentRegistry is AccessControl, Pausable, ReentrancyGuard {
     constructor(address _admin, address _softwareToken, address _protocolTreasury) {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(ADMIN_ROLE, _admin);
-        softwareToken = IERC20(_softwareToken);
+        SOFTWARE_TOKEN = IERC20(_softwareToken);
         protocolTreasury = _protocolTreasury;
     }
 
@@ -108,8 +111,8 @@ contract AgentRegistry is AccessControl, Pausable, ReentrancyGuard {
             uint256 agentRevenue = price - softwareToll;
 
             // Atomic Routing (Direct to participants)
-            softwareToken.transferFrom(msg.sender, protocolTreasury, softwareToll);
-            softwareToken.transferFrom(msg.sender, agent.creator, agentRevenue);
+            SOFTWARE_TOKEN.safeTransferFrom(msg.sender, protocolTreasury, softwareToll);
+            SOFTWARE_TOKEN.safeTransferFrom(msg.sender, agent.creator, agentRevenue);
 
             emit SignalMarketplacePurchase(msg.sender, operator, softwareToll, agentRevenue);
         }
@@ -133,16 +136,16 @@ contract AgentRegistry is AccessControl, Pausable, ReentrancyGuard {
     function recordSignal(
         address operator,
         uint256 nonce,
-        string calldata ipfsCID
+        string calldata ipfsCid
     ) external onlyRole(AGENT_OPERATOR_ROLE) {
         if (!agents[operator].active) revert AgentNotActive();
         if (nonce != nonces[operator]) revert InvalidNonce();
         
         nonces[operator]++;
         agents[operator].signalCount++;
-        latestAuditCID[operator] = ipfsCID;
+        latestAuditCid[operator] = ipfsCid;
         
-        emit SignalRecorded(operator, nonce, ipfsCID);
+        emit SignalRecorded(operator, nonce, ipfsCid);
     }
 
     function pause() external onlyRole(ADMIN_ROLE) { _pause(); }

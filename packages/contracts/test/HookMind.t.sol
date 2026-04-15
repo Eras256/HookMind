@@ -9,11 +9,13 @@ import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {LPFeeLibrary} from "v4-core/src/libraries/LPFeeLibrary.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
+import {PoolSwapTest} from "v4-core/src/test/PoolSwapTest.sol";
 import {HookMindCore} from "../src/HookMindCore.sol";
 import {AgentRegistry} from "../src/AgentRegistry.sol";
 import {YieldVault} from "../src/YieldVault.sol";
 import {ILInsurance} from "../src/ILInsurance.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ModifyLiquidityParams, SwapParams} from "v4-core/src/types/PoolOperation.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
 
 contract HookMindTest is Test, Deployers {
@@ -32,16 +34,22 @@ contract HookMindTest is Test, Deployers {
         
         // 2. Deploy infrastructure
         usdc = new MockERC20("USDC", "USDC", 6);
-        registry = new AgentRegistry(address(this));
+        registry = new AgentRegistry(address(this), address(usdc), address(this));
         
-        // 3. Deploy Hook (using address(0) for circularity, then setVaults)
-        hook = new HookMindCore(
-            manager,
-            registry,
-            YieldVault(address(0)),
-            ILInsurance(address(0)),
-            address(this)
+        // 3. Deploy Hook via HookMiner logic to get the right address flags
+        uint160 flags = uint160(
+            Hooks.AFTER_INITIALIZE_FLAG |
+            Hooks.BEFORE_SWAP_FLAG |
+            Hooks.AFTER_SWAP_FLAG |
+            Hooks.AFTER_ADD_LIQUIDITY_FLAG |
+            Hooks.AFTER_REMOVE_LIQUIDITY_FLAG |
+            Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
         );
+        address hookAddr = address(flags);
+        deployCodeTo("HookMind.t.sol:HookMindCoreTesting", abi.encode(
+            manager, registry, YieldVault(address(0)), ILInsurance(address(0)), address(this)
+        ), hookAddr);
+        hook = HookMindCore(hookAddr);
         
         vault = new YieldVault(IERC20(address(usdc)), address(hook), address(this));
         insurance = new ILInsurance(IERC20(address(usdc)), address(hook), address(this));
@@ -57,12 +65,12 @@ contract HookMindTest is Test, Deployers {
             hooks: hook
         });
         
-        // Sort currencies if needed (Deployers.sol usually handles this, but let's be safe)
-        if (address(key.currency0) > address(key.currency1)) {
+        // Sort currencies if needed
+        if (Currency.unwrap(key.currency0) > Currency.unwrap(key.currency1)) {
             (key.currency0, key.currency1) = (key.currency1, key.currency0);
         }
 
-        manager.initialize(key, SQRT_PRICE_1_1, ZERO_BYTES);
+        manager.initialize(key, SQRT_PRICE_1_1);
         
         // 5. Provide Liquidity
         usdc.mint(address(this), 1000e6);
@@ -72,7 +80,12 @@ contract HookMindTest is Test, Deployers {
 
         modifyLiquidityRouter.modifyLiquidity(
             key,
-            IPoolManager.ModifyLiquidityParams(-600, 600, 10e18, 0),
+            ModifyLiquidityParams({
+                tickLower: -600,
+                tickUpper: 600,
+                liquidityDelta: 10e18,
+                salt: 0
+            }),
             ZERO_BYTES
         );
     }
@@ -80,7 +93,7 @@ contract HookMindTest is Test, Deployers {
     function test_dynamicFeeAndFlashAccounting() public {
         // 1. Simulate AI Agent update
         uint24 newFee = 5000; // 0.5%
-        hook.updateNeuralState_External(key, newFee, true); // Helper for testing without signatures
+        HookMindCoreTesting(address(hook)).updateNeuralState_External(key.toId(), newFee, 5000, true); // Helper for testing without signatures
 
         // 2. Perform Swap
         // We expect the hook to 'take' the fee and move it to the YieldVault
@@ -89,7 +102,7 @@ contract HookMindTest is Test, Deployers {
         
         swapRouter.swap(
             key,
-            IPoolManager.SwapParams({
+            SwapParams({
                 zeroForOne: true,
                 amountSpecified: -1e6, // Swap 1 USDC
                 sqrtPriceLimitX96: SQRT_PRICE_1_2
@@ -114,10 +127,11 @@ contract HookMindCoreTesting is HookMindCore {
         YieldVault _yieldVault,
         ILInsurance _ilInsurance,
         address _admin
-    ) HookMindCore(_poolManager, _agentRegistry, _yieldVault, _ilInsurance, _admin) {}
+    ) HookMindCore(_poolManager, _agentRegistry, _yieldVault, _ilInsurance, _admin, _admin) {}
 
-    function updateNeuralState_External(PoolId pid, uint24 newFee, bool ilProtect) external {
+    function updateNeuralState_External(PoolId pid, uint24 newFee, uint256 volatilityScore, bool ilProtect) external {
         currentDynamicFee[pid] = newFee;
+        poolIntelligence[pid].volatilityScore = volatilityScore;
         poolIntelligence[pid].ilProtectionActive = ilProtect;
         poolIntelligence[pid].lastAgentUpdate = block.timestamp;
     }
