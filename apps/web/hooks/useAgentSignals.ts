@@ -19,8 +19,8 @@ export interface AgentSignal {
   timestamp: number | null;
 }
 
-// Look back ~24h worth of Unichain Sepolia blocks (1 block/sec)
-const LOOKBACK_BLOCKS = BigInt(86_400);
+// Unichain Sepolia RPC max range is 10,000 blocks (~2.8h at 1 block/sec)
+const LOOKBACK_BLOCKS = BigInt(9_999);
 
 export function useAgentSignals() {
   const client = usePublicClient();
