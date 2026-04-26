@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { toast } from "sonner";
-import { Zap, Activity, Shield, Cpu, Terminal, Plus, Lock, X, Trophy, ChevronRight } from "lucide-react";
+import { Zap, Activity, Shield, Cpu, Plus, Lock, X, Trophy, ChevronRight } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useHookMind, usePoolIntelligence, useDynamicFee } from "@/hooks/useHookMind";
+import AgentSignalFeed from "@/components/ui/AgentSignalFeed";
 import { parseUnits, formatEther } from "viem";
 import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
 import { useWriteContract, useReadContract } from "wagmi";
@@ -190,11 +191,6 @@ function DashboardContent() {
     const [activeAgents, setActiveAgents] = useState<AgentFleet[]>([]);
     const [isLoadingFleet, setIsLoadingFleet] = useState(true);
     const [isInitialized, setIsInitialized] = useState(false);
-    const [logs, setLogs] = useState<string[]>([
-        "[SYSTEM] HookMind Dashboard initialized.",
-        "[NETWORK] Connected to Unichain.",
-    ]);
-
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [selectedAgent, setSelectedAgent] = useState<AgentFleet | null>(null);
 
@@ -206,28 +202,6 @@ function DashboardContent() {
         agentsTotal: 0,
     });
 
-    // 1. Mock Live Logs (Websocket fallback)
-    useEffect(() => {
-        const MOCK_EVENTS = [
-            () => `[BLK ${1420000 + Math.floor(Math.random() * 1000)}] ⚡ IPFS CID pinned: QmXr7Y...${Math.random().toString(36).slice(2, 6)}`,
-            () => `[BLK ${1420000 + Math.floor(Math.random() * 1000)}] 🛑 GUARDRAIL: Proposed fee ${10000 + Math.floor(Math.random() * 2000)} bps exceeds MAX_FEE`,
-            () => `[BLK ${1420000 + Math.floor(Math.random() * 1000)}] 📊 Volatility normalizing (${3000 + Math.floor(Math.random() * 1000)}/10k) — Fee dropping to ${3000 + Math.floor(Math.random() * 500)} bps`,
-            () => `[BLK ${1420000 + Math.floor(Math.random() * 1000)}] 💧 Fee epoch advanced • Vault drip rate: ${(Math.random() * 0.01).toFixed(5)} USDC/s`,
-            () => `[BLK ${1420000 + Math.floor(Math.random() * 1000)}] 🛡️ IL exposure rising to ${(1.5 + Math.random() * 2).toFixed(2)}% — Protection active`,
-        ];
-
-        // Simulate WS connect message
-        setTimeout(() => {
-            setLogs(prev => [`[NET] 📡 UNICHAIN UPLINK ESTABLISHED (Latency: ${Math.floor(Math.random() * 20) + 10}ms)`, ...prev].slice(0, 50));
-        }, 1000);
-
-        const interval = setInterval(() => {
-            const event = MOCK_EVENTS[Math.floor(Math.random() * MOCK_EVENTS.length)]();
-            setLogs(prev => [event, ...prev].slice(0, 50));
-        }, 12000); // Unichain block time approx
-
-        return () => clearInterval(interval);
-    }, []);
 
     // Fetch live on-chain Neural State from HookMindCore
     // Newly initialized WETH/USDC pool on Unichain Sepolia
@@ -449,40 +423,10 @@ function DashboardContent() {
                     </div>
                 </div>
 
-                {/* RIGHT: NEURAL FEED LIVE */}
+                {/* RIGHT: LIVE AI SIGNAL FEED */}
                 <div className="sticky top-24">
-                    <div className="flex items-center gap-2 mb-4">
-                        <Terminal size={14} className="text-neural-cyan" />
-                        <span className="text-xs font-mono text-gray-400 uppercase tracking-widest">
-                            Neural Feed • Live
-                        </span>
-                    </div>
-
-                    <div className="bg-void border border-white/10 rounded-2xl p-5 h-[500px] overflow-y-auto font-mono text-xs space-y-2 lg:shadow-[0_0_30px_rgba(0,0,0,0.5)] scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
-                        {logs.map((log, i) => {
-                            const isGuardrail = log.includes("GUARDRAIL");
-                            const isIPFS = log.includes("IPFS");
-                            const isIL = log.includes("IL") || log.includes("Protection");
-                            const isEpoch = log.includes("epoch") || log.includes("drip");
-                            const isNet = log.includes("[NET]");
-
-                            return (
-                                <motion.div
-                                    key={i}
-                                    initial={{ opacity: 0, x: 10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    className={`leading-relaxed px-3 py-2 rounded-lg ${isGuardrail ? "text-neural-red bg-neural-red/10 border border-neural-red/20" :
-                                        isIPFS ? "text-neural-green bg-neural-green/5" :
-                                            isIL ? "text-neural-magenta bg-neural-magenta/5" :
-                                                isEpoch ? "text-neural-cyan bg-neural-cyan/5" :
-                                                    isNet ? "text-blue-400 bg-blue-500/10 border border-blue-500/20 font-bold" :
-                                                        "text-gray-400 hover:bg-white/5"
-                                        } transition-colors`}
-                                >
-                                    {log}
-                                </motion.div>
-                            );
-                        })}
+                    <div className="bg-void border border-white/10 rounded-2xl p-5 lg:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+                        <AgentSignalFeed maxItems={6} />
                     </div>
                 </div>
 

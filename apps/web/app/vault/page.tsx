@@ -1,6 +1,7 @@
 'use client';
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
+import SwapQuotePanel from "@/components/ui/SwapQuotePanel";
 import { Shield, TrendingUp, Clock, DollarSign, Zap, Activity, CheckCircle2, Globe, Cpu } from "lucide-react";
 import {
     LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area, AreaChart, CartesianGrid,
@@ -225,6 +226,39 @@ export default function RegistryPage() {
                             </p>
                         )}
                     </div>
+                </div>
+            </div>
+
+            {/* Swap section — get USDC to deposit */}
+            <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <div>
+                    <h2 className="text-lg font-black text-white mb-2 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-neural-cyan animate-pulse" />
+                        Need USDC? Swap here
+                    </h2>
+                    <p className="text-xs text-gray-500 font-mono mb-4">
+                        Swap any token for USDC at the best price via Uniswap Trading API, then pay your insurance premium.
+                    </p>
+                    <SwapQuotePanel
+                        tokenIn={{ address: '0x4200000000000000000000000000000000000006', symbol: 'WETH', decimals: 18 }}
+                        tokenOut={{ address: '0x86dd85969a254258383ef3dff357671cb5161f88', symbol: 'USDC', decimals: 6 }}
+                    />
+                </div>
+                <div className="glass-card p-5 rounded-2xl text-xs font-mono space-y-3">
+                    <div className="text-[10px] font-black uppercase tracking-widest text-neural-cyan mb-3">
+                        IL Insurance · How it works
+                    </div>
+                    {[
+                        ['1', 'Add liquidity to any HookMind-protected pool. You are auto-enrolled.'],
+                        ['2', 'Pay the 10 USDC premium to activate insurance for your position.'],
+                        ['3', 'When you remove liquidity, if IL exceeds 2%, you receive automatic compensation.'],
+                        ['4', 'Payouts are prorated from the insurance pool balance each 7-day epoch.'],
+                    ].map(([n, desc]) => (
+                        <div key={n} className="flex gap-3 items-start">
+                            <span className="w-5 h-5 rounded-full bg-neural-cyan/10 border border-neural-cyan/30 text-neural-cyan text-[10px] flex items-center justify-center shrink-0 font-black">{n}</span>
+                            <span className="text-gray-400 leading-relaxed">{desc}</span>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

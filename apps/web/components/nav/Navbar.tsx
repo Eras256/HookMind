@@ -5,7 +5,7 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion, AnimatePresence } from "framer-motion";
 import {
     LayoutGrid, Cpu, GitBranch, Layers, TrendingUp, Puzzle, Brain,
-    Lock, Book, Settings, Zap, Trophy, Home, Menu, X, ChevronDown, Globe
+    Lock, Book, Settings, Zap, Trophy, Home, Menu, X, ChevronDown, Globe, ArrowLeftRight
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useState, useEffect, useRef } from "react";
@@ -30,6 +30,7 @@ export function Navbar() {
         { href: "/leaderboard", label: t.nav.rankings, icon: Trophy },
         { href: "/builder", label: t.nav.builder, icon: GitBranch },
         { href: "/pools", label: t.nav.pools, icon: Layers },
+        { href: "/swap", label: "Swap", icon: ArrowLeftRight },
         { href: "/strategies", label: t.nav.strats, icon: TrendingUp },
         { href: "/plugins", label: t.nav.plugins, icon: Puzzle },
         { href: "/skills", label: t.nav.skills, icon: Brain },
