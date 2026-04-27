@@ -61,9 +61,8 @@ function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; on
                 address: AGENT_REGISTRY_ADDRESS,
                 abi: AGENT_REGISTRY_ABI,
                 functionName: 'registerAgent',
-                // For demo purposes, we create a burner / mock agent address
-                // (In a real scenario, this is derived from the operator agent setup)
-                args: [`0x${Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('')}`, "openai", parseUnits("100", 6)], 
+                // The operator EOA is the connected wallet address acting as the agent key
+                args: [address as `0x${string}`, "claude", parseUnits("0", 6)],
                 value: activationFeeNative as bigint,
             });
             
@@ -273,16 +272,14 @@ function DashboardContent() {
     }, [searchParams, isConnected, router]);
 
     const handleDeployAgent = () => {
-        const pairs = ["WETH/USDC", "cbBTC/USDC", "UNI/ETH", "USDC/USDT"];
-        const strategies = ["Volatility Shield", "Peg Keeper", "MEV Defender"];
         const newAgent: AgentFleet = {
             id: `agent-${Date.now()}`,
-            poolPair: pairs[Math.floor(Math.random() * pairs.length)],
-            poolId: "0x...",
-            strategy: strategies[Math.floor(Math.random() * strategies.length)],
+            poolPair: "USDC/WETH",
+            poolId: "0x3faf657fade7f4f22456018f3529e083bd153065269e41cbd75d6dd9cbd48ca5",
+            strategy: "AI Dynamic Fees",
             status: "RUNNING",
-            currentFee: 5000,
-            volScore: 5000,
+            currentFee: 3000,
+            volScore: 3000,
             uptime: "0m",
             agentEOA: address!,
             lastSignalCid: "Qm...",

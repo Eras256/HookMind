@@ -3,7 +3,8 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import SwapQuotePanel from "@/components/ui/SwapQuotePanel";
 import InstitutionalCompliance from "@/components/ui/InstitutionalCompliance";
-import YieldActivityFeed from "@/components/ui/YieldActivityFeed";
+import PoolIntelligenceFeed from "@/components/ui/PoolIntelligenceFeed";
+import { usePoolIntelligenceFeed } from "@/hooks/usePoolIntelligenceFeed";
 import { 
     Shield, TrendingUp, Clock, DollarSign, Zap, 
     Activity, CheckCircle2, Globe, Cpu, BarChart3, 
@@ -16,24 +17,6 @@ import { toast } from "sonner";
 import { useAccount } from "wagmi";
 import { useLanguage } from "@/context/LanguageContext";
 
-// ── Synthetic signal volume data ──────────────────────────────────────────────
-const generateSignalData = () => {
-    const data = [];
-    let volume = 5000;
-    for (let d = 0; d < 7; d++) {
-        for (let h = 0; h < 24; h += 4) {
-            volume += Math.random() * 1200 - 400;
-            data.push({
-                label: `D${d + 1} ${h}:00`,
-                volume: Math.round(volume),
-                consensus: Math.round(volume * (0.85 + Math.random() * 0.1)),
-            });
-        }
-    }
-    return data;
-};
-
-const SIGNAL_DATA = generateSignalData();
 
 // ── Registry Node Status Component ─────────────────────────────────────────
 function NodeStatus({ active, t }: { active: boolean, t: any }) {
@@ -62,6 +45,14 @@ export default function TreasuryPage() {
     const { t } = useLanguage();
     const [activating, setActivating] = useState(false);
     const [active, setActive] = useState(false);
+    const { history: poolHistory, latest } = usePoolIntelligenceFeed();
+
+    // Real chart data from on-chain fee history
+    const chartData = [...poolHistory].reverse().map((s, i) => ({
+        label: `T${i}`,
+        fee: s.currentDynamicFee,
+        vol: Math.round(s.volatilityScore / 10),
+    }));
 
     const handleActivate = async () => {
         if (!isConnected) {
@@ -84,11 +75,11 @@ export default function TreasuryPage() {
     };
 
     const treasuryStats = useMemo(() => [
-        { label: t.vault.signal_volume, value: "142,820", icon: BarChart3, color: "#FC72FF" },
-        { label: t.vault.consensus, value: "99.85%", icon: Zap, color: "#00F2FE" },
+        { label: t.vault.signal_volume,  value: latest ? `${latest.currentDynamicFee} bps` : "—", icon: BarChart3, color: "#FC72FF" },
+        { label: t.vault.consensus,      value: latest ? (latest.volatilityScore > 7000 ? "HIGH" : latest.volatilityScore > 4000 ? "MED" : "LOW") : "—", icon: Zap, color: "#00F2FE" },
         { label: t.vault.activation_fee, value: t.vault.fee_amount, icon: DollarSign, color: "#A78BFA" },
-        { label: t.vault.active_nodes, value: "12,407", icon: Globe, color: "#00FFA3" },
-    ], [t]);
+        { label: t.vault.active_nodes,   value: "1", icon: Globe, color: "#00FFA3" },
+    ], [t, latest]);
 
     return (
         <div className="pt-24 px-6 max-w-7xl mx-auto pb-24">
@@ -151,7 +142,7 @@ export default function TreasuryPage() {
 
                         <div className="h-64 mb-8">
                             <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={SIGNAL_DATA} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                <AreaChart data={chartData.length > 0 ? chartData : []} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="gradVolume" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="#FC72FF" stopOpacity={0.2} />
@@ -188,9 +179,11 @@ export default function TreasuryPage() {
                         </div>
                     </div>
 
-                    {/* Audit Log (Yield Activity) */}
+                    {/* Live Pool Intelligence Feed (real on-chain state) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <YieldActivityFeed />
+                        <div className="glass-card p-5">
+                            <PoolIntelligenceFeed maxItems={5} />
+                        </div>
                         <div className="glass-card p-8 flex flex-col justify-center bg-neural-magenta/5 border-l-4 border-neural-magenta">
                             <h3 className="text-xl font-black text-white mb-4 italic tracking-tight uppercase">Smoothing Mechanism</h3>
                             <p className="text-xs text-gray-400 font-mono leading-relaxed mb-6">

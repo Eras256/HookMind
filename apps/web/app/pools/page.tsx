@@ -1,230 +1,173 @@
 'use client';
-import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, Layers, Cpu, AlertTriangle, X } from "lucide-react";
-import { toast } from "sonner";
-import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from "recharts";
+import { TrendingUp, Layers, Cpu, X, ExternalLink, Shield, ShieldOff, RefreshCw } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useLanguage } from "@/context/LanguageContext";
+import { usePoolIntelligenceFeed } from "@/hooks/usePoolIntelligenceFeed";
+import { HOOK_MIND_CORE_ADDRESS, TARGET_POOL_ID, USDC_ADDRESS, WETH_ADDRESS } from "@/lib/constants";
+import { useState } from "react";
 
-// ── Mock pool analytics data ───────────────────────────────────────────────
-const generatePoolHistory = () =>
-    Array.from({ length: 24 }, (_, i) => ({
-        time: `${i}:00`,
-        fee: Math.floor(2000 + Math.random() * 7000),
-        vol: Math.floor(1000 + Math.random() * 8500),
-    }));
+const EXPLORER = "https://sepolia.uniscan.xyz";
 
-function ILBar({ pct }: { pct: number }) {
-    const color = pct > 70 ? "var(--color-neural-red)" : pct > 30 ? "var(--color-neural-gold)" : "var(--color-neural-green)";
-    return (
-        <div className="flex items-center gap-2">
-            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-                <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="h-full rounded-full"
-                    style={{ background: color, boxShadow: `0 0 6px ${color}80` }}
-                />
-            </div>
-            <span className="text-xs font-mono" style={{ color }}>{pct}%</span>
-        </div>
-    );
-}
-
-function FeeBar({ fee, max }: { fee: number; max: number }) {
-    const pct = (fee / max) * 100;
-    const color = fee >= 8000 ? "var(--color-neural-red)" : fee <= 1000 ? "var(--color-neural-green)" : "var(--color-neural-cyan)";
-    return (
-        <div>
-            <span className="text-xs font-mono font-bold" style={{ color }}>{fee.toLocaleString()} bps</span>
-            <div className="flex h-1 mt-1 rounded-full bg-white/10 overflow-hidden">
-                <div className="rounded-full" style={{ width: `${pct}%`, background: color }} />
-            </div>
-        </div>
-    );
-}
+function feeLabel(bps: number) { return `${(bps / 10000).toFixed(2)}%`; }
+function volColor(s: number) { return s >= 7000 ? "var(--color-neural-red)" : s >= 4000 ? "var(--color-neural-gold)" : "var(--color-neural-green)"; }
+function addr(a: string) { return `${a.slice(0,6)}…${a.slice(-4)}`; }
 
 export default function PoolsPage() {
-    const { t, language } = useLanguage();
-    const [analyticsPool, setAnalyticsPool] = useState<any | null>(null);
-    const [analyticsData] = useState(() => generatePoolHistory());
+    const { t } = useLanguage();
+    const { history, loading, error, latest } = usePoolIntelligenceFeed();
+    const [showModal, setShowModal] = useState(false);
 
-    const hookPools = useMemo(() => [
-        { pair: "WETH/USDC", t0: "⟠", t1: "💵", tvl: "$4.2M", vol24h: "$890K", currentFee: 7200, maxFee: 10000, status: t.pools.status_monitoring, strategy: "Volatility Shield", ilRisk: 65, lastUpdate: language === 'en' ? "12s ago" : language === 'es' ? "hace 12s" : "12秒前", agentEOA: "0xA3b4...F21c" },
-        { pair: "cbBTC/USDC", t0: "₿", t1: "💵", tvl: "$1.8M", vol24h: "$320K", currentFee: 3000, maxFee: 10000, status: t.pools.status_monitoring, strategy: "Peg Keeper", ilRisk: 22, lastUpdate: language === 'en' ? "8s ago" : language === 'es' ? "hace 8s" : "8秒前", agentEOA: "0xE7c2...09aB" },
-        { pair: "UNI/ETH", t0: "🦄", t1: "⟠", tvl: "$980K", vol24h: "$210K", currentFee: 10000, maxFee: 10000, status: t.pools.status_alert, strategy: "MEV Defender", ilRisk: 89, lastUpdate: language === 'en' ? "3s ago" : language === 'es' ? "hace 3s" : "3秒前", agentEOA: "0x8f1D...4Cc3" },
-        { pair: "USDC/USDT", t0: "💵", t1: "💵", tvl: "$6.1M", vol24h: "$1.4M", currentFee: 500, maxFee: 10000, status: t.pools.status_monitoring, strategy: "Peg Keeper", ilRisk: 4, lastUpdate: language === 'en' ? "15s ago" : language === 'es' ? "hace 15s" : "15秒前", agentEOA: "0x3Dc1...A8f2" },
-    ], [t, language]);
+    const chartData = [...history].reverse().map((s, i) => ({
+        time: `T-${history.length - 1 - i}`,
+        fee: s.currentDynamicFee,
+        vol: s.volatilityScore / 10, // scale to similar axis
+    }));
 
-    const summaryStats = useMemo(() => [
-        { label: t.pools.stat_tvl, value: "$13.1M", icon: TrendingUp },
-        { label: t.pools.stat_active, value: "4", icon: Layers },
-        { label: t.pools.stat_avg_fee, value: "5,475 bps", icon: Cpu },
-        { label: t.pools.stat_nodes, value: "3 / 3", icon: Cpu },
-    ], [t]);
+    const ilRisk = latest ? Math.round(latest.volatilityScore / 100) : 0;
 
     return (
-        <>
-            {/* Pool Analytics Modal */}
-            <AnimatePresence>
-                {analyticsPool && (
-                    <>
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setAnalyticsPool(null)}
-                            className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-void/98 border border-neural-magenta/25 rounded-2xl p-7 backdrop-blur-[28px]"
-                        >
-                            <div className="flex justify-between items-center mb-6">
-                                <div>
-                                    <h3 className="text-xl font-black text-white">{analyticsPool.pair} — {t.pools.chart_title}</h3>
-                                    <p className="text-sm text-gray-500 font-mono mt-0.5">{t.pools.chart_subtitle}</p>
-                                </div>
-                                <button onClick={() => setAnalyticsPool(null)} className="p-2 rounded-lg hover:bg-white/10 text-gray-500 hover:text-white transition-colors">
-                                    <X size={18} />
-                                </button>
+        <div className="pt-20 px-5 max-w-7xl mx-auto pb-20 space-y-8">
+            {/* Header */}
+            <div className="pt-8">
+                <div className="inline-flex items-center gap-2 neon-badge mb-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-neural-cyan animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-neural-cyan">
+                        {t.pools.hero_badge}
+                    </span>
+                </div>
+                <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-white mb-2">
+                    {t.pools.hero_title}{' '}
+                    <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-cyan to-neural-magenta">
+                        {t.pools.hero_subtitle}
+                    </span>
+                </h1>
+                <p className="text-gray-500 font-mono text-sm max-w-xl">{t.pools.hero_desc}</p>
+            </div>
+
+            {/* Stats row — real data */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                    { label: t.pools.stat_tvl,    value: loading ? "…" : "Live",            icon: TrendingUp },
+                    { label: t.pools.stat_active,  value: "1",                               icon: Layers     },
+                    { label: t.pools.stat_avg_fee, value: latest ? feeLabel(latest.currentDynamicFee) : "…", icon: Cpu },
+                    { label: t.pools.stat_nodes,   value: "1",                               icon: Cpu        },
+                ].map(({ label, value, icon: Icon }) => (
+                    <div key={label} className="glass-card p-4 flex items-center gap-3">
+                        <Icon size={16} className="text-neural-cyan shrink-0" />
+                        <div>
+                            <div className="text-[10px] text-gray-500 font-mono uppercase">{label}</div>
+                            <div className="text-base font-black text-white font-mono">{value}</div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Single real pool card */}
+            <div className="glass-card p-6 rounded-2xl border border-white/10 hover:border-neural-cyan/30 transition-colors">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                    <div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="flex items-center">
+                                <div className="w-8 h-8 rounded-full bg-neural-cyan/20 flex items-center justify-center text-sm">💵</div>
+                                <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-sm -ml-2">⟠</div>
                             </div>
-                            <ResponsiveContainer width="100%" height={260}>
-                                <AreaChart data={analyticsData} margin={{ left: -20, right: 8 }}>
+                            <div>
+                                <div className="font-black text-xl text-white">USDC / WETH</div>
+                                <div className="text-[10px] text-gray-500 font-mono">Unichain Sepolia · HookMind v1</div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {latest?.ilProtectionActive ? (
+                                <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-neural-green border border-neural-green/30 rounded-full px-2 py-0.5">
+                                    <Shield size={9} /> IL ACTIVE
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1 text-[10px] font-mono text-gray-500 border border-white/10 rounded-full px-2 py-0.5">
+                                    <ShieldOff size={9} /> IL STANDBY
+                                </span>
+                            )}
+                            <span className="text-[10px] font-mono text-neural-cyan border border-neural-cyan/20 rounded-full px-2 py-0.5">
+                                {t.pools.status_monitoring}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="bg-white/5 rounded-xl p-3 text-center">
+                            <div className="text-[9px] text-gray-500 font-mono uppercase mb-1">Dynamic Fee</div>
+                            <div className="text-lg font-black text-neural-cyan font-mono">
+                                {latest ? feeLabel(latest.currentDynamicFee) : "…"}
+                            </div>
+                        </div>
+                        <div className="bg-white/5 rounded-xl p-3 text-center">
+                            <div className="text-[9px] text-gray-500 font-mono uppercase mb-1">Volatility</div>
+                            <div className="text-lg font-black font-mono" style={{ color: latest ? volColor(latest.volatilityScore) : "white" }}>
+                                {latest ? latest.volatilityScore.toLocaleString() : "…"}
+                            </div>
+                        </div>
+                        <div className="bg-white/5 rounded-xl p-3 text-center">
+                            <div className="text-[9px] text-gray-500 font-mono uppercase mb-1">IL Risk</div>
+                            <div className="text-lg font-black font-mono" style={{ color: volColor(ilRisk * 100) }}>
+                                {ilRisk}%
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* On-chain links */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                    <a href={`${EXPLORER}/address/${HOOK_MIND_CORE_ADDRESS}`} target="_blank" rel="noopener noreferrer"
+                       className="flex items-center gap-1 text-[10px] font-mono text-gray-500 hover:text-neural-cyan transition-colors">
+                        Hook {addr(HOOK_MIND_CORE_ADDRESS)} <ExternalLink size={9} />
+                    </a>
+                    <span className="text-gray-700 text-[10px]">·</span>
+                    <a href={`${EXPLORER}/address/${USDC_ADDRESS}`} target="_blank" rel="noopener noreferrer"
+                       className="flex items-center gap-1 text-[10px] font-mono text-gray-500 hover:text-neural-cyan transition-colors">
+                        USDC {addr(USDC_ADDRESS)} <ExternalLink size={9} />
+                    </a>
+                    <span className="text-gray-700 text-[10px]">·</span>
+                    <a href={`${EXPLORER}/address/${WETH_ADDRESS}`} target="_blank" rel="noopener noreferrer"
+                       className="flex items-center gap-1 text-[10px] font-mono text-gray-500 hover:text-neural-cyan transition-colors">
+                        WETH {addr(WETH_ADDRESS)} <ExternalLink size={9} />
+                    </a>
+                </div>
+
+                {/* Mini chart of fee history */}
+                {chartData.length > 1 && (
+                    <div>
+                        <div className="text-[10px] font-mono text-gray-600 uppercase tracking-widest mb-2">Fee History (on-chain snapshots)</div>
+                        <div className="h-24">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={chartData} margin={{ top: 4, right: 4, left: -30, bottom: 0 }}>
                                     <defs>
-                                        <linearGradient id="gFee" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="var(--color-neural-cyan)" stopOpacity={0.3} />
+                                        <linearGradient id="gFee2" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="var(--color-neural-cyan)" stopOpacity={0.4} />
                                             <stop offset="100%" stopColor="var(--color-neural-cyan)" stopOpacity={0} />
-                                        </linearGradient>
-                                        <linearGradient id="gVol" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="var(--color-neural-magenta)" stopOpacity={0.3} />
-                                            <stop offset="100%" stopColor="var(--color-neural-magenta)" stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
-                                    <XAxis dataKey="time" tick={{ fontSize: 10 }} stroke="rgba(255,255,255,0.1)" tickLine={false} />
-                                    <YAxis stroke="rgba(255,255,255,0.1)" tickLine={false} tick={{ fontSize: 10 }} />
-                                    <Tooltip contentStyle={{ background: "rgba(10,10,18,0.95)", border: "1px solid rgba(252,114,255,0.3)", borderRadius: 10, fontSize: 11, fontFamily: "JetBrains Mono" }} />
-                                    <Legend wrapperStyle={{ fontSize: 11, fontFamily: "JetBrains Mono" }} />
-                                    <Area type="monotone" dataKey="fee" stroke="var(--color-neural-cyan)" fill="url(#gFee)" strokeWidth={2} name={t.pools.chart_fee_legend} />
-                                    <Area type="monotone" dataKey="vol" stroke="var(--color-neural-magenta)" fill="url(#gVol)" strokeWidth={2} name={t.pools.chart_vol_legend} />
+                                    <XAxis dataKey="time" tick={{ fontSize: 8 }} stroke="rgba(255,255,255,0.1)" tickLine={false} />
+                                    <YAxis stroke="rgba(255,255,255,0.1)" tickLine={false} tick={{ fontSize: 8 }} />
+                                    <Tooltip contentStyle={{ background:"rgba(8,8,18,0.95)", border:"1px solid rgba(0,242,254,0.2)", borderRadius:8, fontSize:11 }} formatter={(v: any) => [`${v} bps`, "Fee"]} />
+                                    <Area type="monotone" dataKey="fee" stroke="var(--color-neural-cyan)" fill="url(#gFee2)" strokeWidth={2} dot={false} />
                                 </AreaChart>
                             </ResponsiveContainer>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-
-            <div className="pt-20 px-5 max-w-7xl mx-auto pb-16">
-                {/* Header */}
-                <div className="pt-8 mb-8">
-                    <div className="inline-flex items-center gap-2 neon-badge mb-4">
-                        <span className="w-1.5 h-1.5 rounded-full bg-neural-cyan animate-pulse" />
-                        {t.pools.hero_badge}
+                        </div>
                     </div>
-                    <h1 className="text-3xl sm:text-5xl font-black tracking-tighter mb-2">
-                        {t.pools.hero_title}{" "}
-                        <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-cyan to-neural-magenta">
-                            {t.pools.hero_subtitle}
-                        </span>
-                    </h1>
-                    <p className="text-gray-500">{t.pools.hero_desc}</p>
-                </div>
+                )}
 
-                {/* Summary Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-                    {summaryStats.map(({ label, value, icon: Icon }, i) => (
-                        <motion.div
-                            key={label}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.07 }}
-                            className="glass-card p-4 flex items-center gap-3"
-                        >
-                            <div className="p-2 rounded-lg bg-white/5">
-                                <Icon size={16} className="text-neural-magenta" />
-                            </div>
-                            <div>
-                                <div className="text-xl font-black font-mono text-white">{value}</div>
-                                <div className="text-[11px] text-gray-500 font-mono">{label}</div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
-
-                {/* Pool Cards */}
-                <div className="space-y-3">
-                    {hookPools.map((pool, i) => (
-                        <motion.div
-                            key={pool.pair}
-                            initial={{ opacity: 0, y: 16 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: i * 0.08 }}
-                            className="glass-card p-5"
-                        >
-                            <div className="grid grid-cols-2 md:grid-cols-7 gap-4 items-center">
-                                {/* Pair */}
-                                <div className="md:col-span-1">
-                                    <div className="text-2xl mb-0.5">{pool.t0}{pool.t1}</div>
-                                    <div className="font-black text-white">{pool.pair}</div>
-                                    <div className="text-[11px] text-gray-500 font-mono mt-0.5">{pool.agentEOA}</div>
-                                </div>
-
-                                {/* TVL / Vol */}
-                                <div className="md:col-span-1 text-center">
-                                    <div className="text-xs text-gray-500 font-mono uppercase">{t.pools.table_tvl}</div>
-                                    <div className="font-bold text-white">{pool.tvl}</div>
-                                    <div className="text-xs text-gray-600">{pool.vol24h} {t.pools.table_vol_24h}</div>
-                                </div>
-
-                                {/* Current Fee */}
-                                <div className="md:col-span-1">
-                                    <div className="text-xs text-gray-500 font-mono uppercase mb-1">{t.pools.table_fee}</div>
-                                    <FeeBar fee={pool.currentFee} max={pool.maxFee} />
-                                </div>
-
-                                {/* IL Risk */}
-                                <div className="md:col-span-2">
-                                    <div className="text-xs text-gray-500 font-mono uppercase mb-1">{t.pools.table_il_risk}</div>
-                                    <ILBar pct={pool.ilRisk} />
-                                </div>
-
-                                {/* Status + Strategy */}
-                                <div className="md:col-span-1 text-center py-2 md:py-0">
-                                    <span className={pool.status === t.pools.status_alert ? "px-2 py-0.5 rounded text-[10px] md:text-xs font-mono font-bold text-neural-red bg-neural-red/10 border border-neural-red/30 uppercase animate-pulse inline-block" : "status-running inline-block"}>
-                                        {pool.status}
-                                    </span>
-                                    <div className="text-[10px] md:text-[11px] text-gray-500 font-mono mt-1">{pool.strategy}</div>
-                                    <div className="text-[9px] md:text-[10px] text-gray-700 font-mono">{pool.lastUpdate}</div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="md:col-span-1 flex gap-2 justify-end">
-                                    <motion.button
-                                        whileHover={{ scale: 1.04 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={() => setAnalyticsPool(pool)}
-                                        className="btn-ghost text-xs px-3 py-2 rounded-lg"
-                                    >
-                                        {t.pools.btn_analytics}
-                                    </motion.button>
-                                    <motion.button
-                                        whileHover={{ scale: 1.04 }}
-                                        whileTap={{ scale: 0.97 }}
-                                        onClick={() => toast.loading(t.pools.toast_switching.replace('{pair}', pool.pair), { id: pool.pair })}
-                                        className="btn-ghost text-xs px-3 py-2 rounded-lg"
-                                    >
-                                        {t.pools.btn_strategy}
-                                    </motion.button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+                {error && (
+                    <div className="text-xs font-mono text-neural-red/70 bg-neural-red/5 border border-neural-red/20 rounded-xl px-4 py-2 mt-4">
+                        {error}
+                    </div>
+                )}
             </div>
-        </>
+
+            {/* Pool ID reference */}
+            <div className="text-[10px] font-mono text-gray-700 break-all px-1">
+                Pool ID: {TARGET_POOL_ID}
+            </div>
+        </div>
     );
 }

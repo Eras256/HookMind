@@ -1,14 +1,15 @@
-// HookMind — FRESH deployment on Unichain Sepolia (2026-04-26)
-// All addresses verified on-chain. Pool initialized + agent registered.
+// HookMind — Fresh deployment 2026-04-27
+// Real USDC (0x31d0..., 16.6M supply), Unichain Sepolia
+// Pool: USDC/WETH initialized at sqrtPrice ≈ 2000 USDC/WETH
 
-export const HOOK_MIND_CORE_ADDRESS = "0x1E9ce3E00860921c72a6cd6909786A1767a755c8" as const;
-export const AGENT_REGISTRY_ADDRESS = "0x90936056be4ea86Cd4c8a1Cf53A28c6712affCCA" as const;
-export const YIELD_VAULT_ADDRESS    = "0x1e8837a897E80114281b2fbEf938695a3d6E5c60" as const;
-export const IL_INSURANCE_ADDRESS   = "0x67b3ceD9Fb477546BfC736866b8fF3865f101FC1" as const;
+export const HOOK_MIND_CORE_ADDRESS = "0x6C1D32018976A6dE59f1970Ac35BCACD17BbD5c8" as const;
+export const AGENT_REGISTRY_ADDRESS = "0x8d7a735Ab7682f7bcb4D50EA8114264058833df7" as const;
+export const YIELD_VAULT_ADDRESS    = "0x192653B71407735798Dde43a7A669C145da5B8F1" as const;
+export const IL_INSURANCE_ADDRESS   = "0xD61c1a1806651661ac0a00824b829c1F50D38F99" as const;
 export const POOL_MANAGER_ADDRESS   = "0x00B036B58a818B1BC34d502D3fE730Db729e62AC" as const;
-export const USDC_ADDRESS           = "0x7780Ba8F829A797D17634E79519e2fdF929fD698" as const;
+export const USDC_ADDRESS           = "0x31d0220469e10c4E71834a79b1f276d740d3768F" as const;
 export const WETH_ADDRESS           = "0x4200000000000000000000000000000000000006" as const;
-export const TARGET_POOL_ID         = "0x614e643c18b72cb6deba1b89d01f25715f1b25071651b906755c3ef362c15c30" as const;
+export const TARGET_POOL_ID         = "0x3faf657fade7f4f22456018f3529e083bd153065269e41cbd75d6dd9cbd48ca5" as const;
 
 import HookMindCore from "./abis/HookMindCore.json";
 import AgentRegistry from "./abis/AgentRegistry.json";

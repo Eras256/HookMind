@@ -52,10 +52,12 @@ HookMind is proud to integrate the official **Uniswap AI Skills**:
 
 | Contract | Address | Role |
 |---|---|---|
-| **HookMindCore** | [`0xf9e876...955c8`](https://sepolia.uniscan.xyz/address/0xf9e8768686d0138ee041898a906ddd78519955c8) | Uniswap v4 Hook — dynamic fees + IL enrollment |
-| **AgentRegistry** | [`0xb3411c...5f4e`](https://sepolia.uniscan.xyz/address/0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e) | On-chain agent authorization via ECDSA |
-| **YieldVault** | [`0xa02422...9a79b`](https://sepolia.uniscan.xyz/address/0xa0242258bc39d2b2daaf4913f30803f77b01a79b) | Protocol fee collection (1% of swap fees) |
-| **ILInsurance** | [`0x42aa32...07eef`](https://sepolia.uniscan.xyz/address/0x42aa32c49e993936d23a3cc746173c6954a07eef) | USDC insurance pool with epoch-prorated payouts |
+| **HookMindCore** | [`0x6C1D32...bD5c8`](https://sepolia.uniscan.xyz/address/0x6C1D32018976A6dE59f1970Ac35BCACD17BbD5c8) | Uniswap v4 Hook — dynamic fees + IL enrollment |
+| **AgentRegistry** | [`0x8d7a73...3df7`](https://sepolia.uniscan.xyz/address/0x8d7a735Ab7682f7bcb4D50EA8114264058833df7) | On-chain agent authorization via ECDSA |
+| **YieldVault** | [`0x192653...b8F1`](https://sepolia.uniscan.xyz/address/0x192653B71407735798Dde43a7A669C145da5B8F1) | Protocol fee collection (1% of swap fees) |
+| **ILInsurance** | [`0xD61c1a...8F99`](https://sepolia.uniscan.xyz/address/0xD61c1a1806651661ac0a00824b829c1F50D38F99) | USDC insurance pool with epoch-prorated payouts |
+| **USDC (real)** | [`0x31d022...768F`](https://sepolia.uniscan.xyz/address/0x31d0220469e10c4E71834a79b1f276d740d3768F) | Real USDC on Unichain Sepolia (16.6M supply) |
+| **Pool (USDC/WETH)** | `0x3faf65...8ca5` | Initialized pool at ~2000 USDC/WETH |
 
 ---
 

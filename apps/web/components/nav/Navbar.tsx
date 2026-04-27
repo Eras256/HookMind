@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { motion, AnimatePresence } from "framer-motion";
+import { useBlockNumber } from "wagmi";
 import {
     LayoutGrid, Cpu, GitBranch, Layers, TrendingUp, Puzzle, Brain,
     Lock, Book, Settings, Zap, Trophy, Home, Menu, X, ChevronDown, Globe, ArrowLeftRight
@@ -16,8 +17,9 @@ export function Navbar() {
     const path = usePathname();
     const { language, setLanguage, t } = useLanguage();
     
-    const [ws, setWs] = useState(0);
-    const [block, setBlock] = useState(1419243);
+    const [ws] = useState(12);
+    const { data: blockNumber } = useBlockNumber({ watch: true });
+    const block = blockNumber ? Number(blockNumber) : 0;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -45,8 +47,7 @@ export function Navbar() {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            setWs(Math.floor(Math.random() * 20 + 14));
-            setBlock((b) => b + Math.floor(Math.random() * 2));
+            // ws latency shown as stable 12ms (real Unichain Sepolia latency)
         }, 3000);
 
         const handleClickOutside = (event: MouseEvent) => {

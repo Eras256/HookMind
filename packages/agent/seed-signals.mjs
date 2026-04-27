@@ -1,123 +1,94 @@
 /**
- * seed-signals.mjs — Generates real AgentSignalProcessed events on Unichain Sepolia.
- *
- * Run from project root:
- *   node scripts/seed-signals.mjs
+ * seed-signals.mjs — Sends real updateNeuralState() calls to the fresh HookMindCore.
+ * Run from packages/agent: node seed-signals.mjs
  */
-
 import { createPublicClient, createWalletClient, http, encodePacked, keccak256 } from "viem";
 import { privateKeyToAccount, signMessage } from "viem/accounts";
 import { config as loadEnv } from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-loadEnv({ path: join(__dirname, ".env") });
+const __dir = dirname(fileURLToPath(import.meta.url));
+loadEnv({ path: join(__dir, ".env") });
 
-// ── FRESH deployment (2026-04-26) ─────────────────────────────────────────────
-const HOOK_ADDRESS = "0x1E9ce3E00860921c72a6cd6909786A1767a755c8";
-const POOL_ID      = "0x614e643c18b72cb6deba1b89d01f25715f1b25071651b906755c3ef362c15c30";
-const RPC_URL      = "https://sepolia.unichain.org";
-const CHAIN_ID     = 1301;
-const AGENT_KEY    = process.env.AGENT_PRIVATE_KEY;
+const HOOK    = "0x6C1D32018976A6dE59f1970Ac35BCACD17BbD5c8";
+const POOL_ID = "0x3faf657fade7f4f22456018f3529e083bd153065269e41cbd75d6dd9cbd48ca5";
+const RPC     = "https://sepolia.unichain.org";
+const CHAIN_ID = 1301;
+const KEY      = process.env.AGENT_PRIVATE_KEY;
 
-// Mock USDC (0x77...) > WETH (0x42...) → WETH is currency0
+// USDC (0x31d0..) < WETH (0x42..) → USDC is currency0
 const POOL_KEY = {
-  currency0: "0x4200000000000000000000000000000000000006", // WETH
-  currency1: "0x7780Ba8F829A797D17634E79519e2fdF929fD698", // Mock USDC
-  fee: 0x800000,
-  tickSpacing: 60,
-  hooks: HOOK_ADDRESS,
+  currency0: "0x31d0220469e10c4E71834a79b1f276d740d3768F",
+  currency1: "0x4200000000000000000000000000000000000006",
+  fee: 0x800000, tickSpacing: 60,
+  hooks: HOOK,
 };
 
-if (!AGENT_KEY) { console.error("AGENT_PRIVATE_KEY missing in packages/agent/.env"); process.exit(1); }
-
-const ABI = [
-  {
-    name: "updateNeuralState",
-    type: "function",
-    inputs: [
-      { name: "key", type: "tuple", components: [
-        { name: "currency0",   type: "address" },
-        { name: "currency1",   type: "address" },
-        { name: "fee",         type: "uint24"  },
-        { name: "tickSpacing", type: "int24"   },
-        { name: "hooks",       type: "address" },
-      ]},
-      { name: "newFee",          type: "uint24"  },
-      { name: "volatilityScore", type: "uint256" },
-      { name: "ilProtect",       type: "bool"    },
-      { name: "ipfsCid",         type: "string"  },
-      { name: "nonce",           type: "uint256" },
-      { name: "signature",       type: "bytes"   },
-    ],
-    outputs: [],
-    stateMutability: "nonpayable",
-  },
-  {
-    name: "agentNonces",
-    type: "function",
-    inputs: [{ name: "operator", type: "address" }],
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-  },
-];
+const ABI = [{
+  name: "updateNeuralState", type: "function",
+  inputs: [
+    { name: "key", type: "tuple", components: [
+      { name: "currency0", type: "address" }, { name: "currency1", type: "address" },
+      { name: "fee", type: "uint24" }, { name: "tickSpacing", type: "int24" },
+      { name: "hooks", type: "address" },
+    ]},
+    { name: "newFee", type: "uint24" }, { name: "volatilityScore", type: "uint256" },
+    { name: "ilProtect", type: "bool" }, { name: "ipfsCid", type: "string" },
+    { name: "nonce", type: "uint256" }, { name: "signature", type: "bytes" },
+  ],
+  outputs: [], stateMutability: "nonpayable",
+}, {
+  name: "agentNonces", type: "function", stateMutability: "view",
+  inputs: [{ name: "operator", type: "address" }],
+  outputs: [{ type: "uint256" }],
+}];
 
 const SCENARIOS = [
-  { label: "Stable market",      fee: 3000, vol: 2100, il: false },
-  { label: "Mild volatility",    fee: 5000, vol: 4800, il: false },
-  { label: "High volatility",    fee: 7500, vol: 7300, il: true  },
-  { label: "Spike — MEV alert",  fee: 9500, vol: 9100, il: true  },
-  { label: "Cooling down",       fee: 4200, vol: 3500, il: false },
+  { label: "Market opening — baseline",  fee: 3000, vol: 2400, il: false },
+  { label: "Volume spike detected",      fee: 5500, vol: 5800, il: false },
+  { label: "High volatility event",      fee: 7800, vol: 7600, il: true  },
+  { label: "MEV activity detected",      fee: 9200, vol: 9000, il: true  },
+  { label: "Cooling — returning normal", fee: 4000, vol: 3200, il: false },
 ];
 
 async function main() {
-  const chain = { id: CHAIN_ID, name: "Unichain Sepolia",
-    nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-    rpcUrls: { default: { http: [RPC_URL] } } };
-
-  const account   = privateKeyToAccount(AGENT_KEY);
-  const pubClient = createPublicClient({ chain, transport: http(RPC_URL) });
-  const walClient = createWalletClient({ account, chain, transport: http(RPC_URL) });
+  if (!KEY) { console.error("AGENT_PRIVATE_KEY missing"); process.exit(1); }
+  const chain = { id: CHAIN_ID, name: "Unichain Sepolia", nativeCurrency: { name:"ETH",symbol:"ETH",decimals:18 }, rpcUrls: { default: { http: [RPC] } } };
+  const account  = privateKeyToAccount(KEY);
+  const pubCli   = createPublicClient({ chain, transport: http(RPC) });
+  const walCli   = createWalletClient({ account, chain, transport: http(RPC) });
 
   console.log("\n🧠 HookMind Signal Seeder");
-  console.log(`   Hook:  ${HOOK_ADDRESS}`);
-  console.log(`   Pool:  ${POOL_ID}`);
-  console.log(`   Agent: ${account.address}\n`);
+  console.log("   Hook:  ", HOOK);
+  console.log("   Agent: ", account.address);
 
-  let nonce = await pubClient.readContract({
-    address: HOOK_ADDRESS, abi: ABI, functionName: "agentNonces", args: [account.address],
-  });
-  console.log(`   Starting nonce: ${nonce}\n`);
+  let nonce;
+  try {
+    nonce = await pubCli.readContract({ address: HOOK, abi: ABI, functionName: "agentNonces", args: [account.address] });
+  } catch { nonce = 0n; }
+  console.log("   Nonce: ", nonce.toString(), "\n");
 
   for (const s of SCENARIOS) {
-    console.log(`⚡ ${s.label}`);
-    console.log(`   fee=${s.fee} bps  vol=${s.vol}/10000  IL=${s.il}`);
-
-    const cid = `QmHookMindSeed${Date.now()}`;
-
-    // Sign: keccak256(abi.encodePacked(poolId, fee, vol, il, cid, nonce, chainId))
+    const cid = `QmHookMind${Date.now()}`;
     const msgHash = keccak256(encodePacked(
       ["bytes32", "uint24",  "uint256",      "bool",  "string", "uint256", "uint256"],
       [POOL_ID,   s.fee,     BigInt(s.vol),  s.il,    cid,      nonce,     BigInt(CHAIN_ID)]
     ));
-    const sig = await signMessage({ privateKey: AGENT_KEY, message: { raw: msgHash } });
-
+    const sig = await signMessage({ privateKey: KEY, message: { raw: msgHash } });
+    console.log(`⚡ ${s.label}`);
     try {
-      const tx = await walClient.writeContract({
-        address: HOOK_ADDRESS, abi: ABI, functionName: "updateNeuralState",
+      const tx = await walCli.writeContract({
+        address: HOOK, abi: ABI, functionName: "updateNeuralState",
         args: [POOL_KEY, s.fee, BigInt(s.vol), s.il, cid, nonce, sig],
       });
-      console.log(`   ✅ ${tx}\n`);
+      console.log(`   ✅ ${tx}`);
       nonce = nonce + 1n;
-      await new Promise(r => setTimeout(r, 4000));
-    } catch (err) {
-      console.error(`   ❌ ${err.shortMessage || err.message}\n`);
+      await new Promise(r => setTimeout(r, 3000));
+    } catch (e) {
+      console.error(`   ❌ ${e.shortMessage || e.message.slice(0,100)}`);
     }
   }
-
-  console.log(`Done! Seeded ${SCENARIOS.length} scenarios.`);
-  console.log("Reload the dashboard — Agent Signal Feed will show them.\n");
+  console.log("\n✅ Done! Reload dashboard to see live signals.\n");
 }
-
 main().catch(console.error);
