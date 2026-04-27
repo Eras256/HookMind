@@ -14,17 +14,17 @@ import { dirname, join } from "path";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 loadEnv({ path: join(__dirname, ".env") });
 
-// ── Verified active deployment (agent hook + initialized pool) ────────────────
-const HOOK_ADDRESS = "0x56e1aC266Fa45824d02AFAf7569cdd6Fd1ee15c0";
-const POOL_ID      = "0xb7cace89ba6c8b33f5529e576a7f0820d42b587e1a2e518a01e176ffe12fb9fe";
+// ── FRESH deployment (2026-04-26) ─────────────────────────────────────────────
+const HOOK_ADDRESS = "0x1E9ce3E00860921c72a6cd6909786A1767a755c8";
+const POOL_ID      = "0x614e643c18b72cb6deba1b89d01f25715f1b25071651b906755c3ef362c15c30";
 const RPC_URL      = "https://sepolia.unichain.org";
 const CHAIN_ID     = 1301;
 const AGENT_KEY    = process.env.AGENT_PRIVATE_KEY;
 
-// Pool key: USDC (0x31d0...) < WETH (0x42...) → USDC is currency0
+// Mock USDC (0x77...) > WETH (0x42...) → WETH is currency0
 const POOL_KEY = {
-  currency0: "0x31d0220469e10c4E71834a79b1f276d740d3768F", // USDC
-  currency1: "0x4200000000000000000000000000000000000006", // WETH
+  currency0: "0x4200000000000000000000000000000000000006", // WETH
+  currency1: "0x7780Ba8F829A797D17634E79519e2fdF929fD698", // Mock USDC
   fee: 0x800000,
   tickSpacing: 60,
   hooks: HOOK_ADDRESS,

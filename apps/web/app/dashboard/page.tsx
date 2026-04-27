@@ -9,6 +9,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useHookMind, usePoolIntelligence, useDynamicFee } from "@/hooks/useHookMind";
 import PoolIntelligenceFeed from "@/components/ui/PoolIntelligenceFeed";
+import AgentSignalFeed from "@/components/ui/AgentSignalFeed";
 import { parseUnits, formatEther } from "viem";
 import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
 import { useWriteContract, useReadContract } from "wagmi";
@@ -423,10 +424,13 @@ function DashboardContent() {
                     </div>
                 </div>
 
-                {/* RIGHT: LIVE POOL INTELLIGENCE FEED (real on-chain state) */}
-                <div className="sticky top-24">
+                {/* RIGHT: LIVE FEED — real on-chain events + state */}
+                <div className="sticky top-24 space-y-4">
                     <div className="bg-void border border-white/10 rounded-2xl p-5 lg:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                        <PoolIntelligenceFeed maxItems={6} />
+                        <PoolIntelligenceFeed maxItems={3} />
+                    </div>
+                    <div className="bg-void border border-white/10 rounded-2xl p-5">
+                        <AgentSignalFeed maxItems={5} />
                     </div>
                 </div>
 

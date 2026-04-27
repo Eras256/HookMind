@@ -34,7 +34,7 @@ export default function SwapPage() {
             <div className="w-full max-w-lg">
                 <SwapQuotePanel
                     tokenIn={{ address: '0x4200000000000000000000000000000000000006', symbol: 'WETH', decimals: 18 }}
-                    tokenOut={{ address: '0x31d0220469e10c4E71834a79b1f276d740d3768F', symbol: 'USDC', decimals: 6 }}
+                    tokenOut={{ address: '0x7780Ba8F829A797D17634E79519e2fdF929fD698', symbol: 'USDC', decimals: 6 }}
                 />
             </div>
 
