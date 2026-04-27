@@ -8,12 +8,12 @@ import { Zap, Activity, Shield, Cpu, Plus, Lock, X, Trophy, ChevronRight } from 
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useHookMind, usePoolIntelligence, useDynamicFee } from "@/hooks/useHookMind";
-import PoolIntelligenceFeed from "@/components/ui/PoolIntelligenceFeed";
-import AgentSignalFeed from "@/components/ui/AgentSignalFeed";
 import { parseUnits, formatEther } from "viem";
 import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
 import { useWriteContract, useReadContract } from "wagmi";
 import { LEADERBOARD_DATA } from "@/app/leaderboard/data";
+import AgentSignalFeed from "@/components/ui/AgentSignalFeed";
+import PoolIntelligenceFeed from "@/components/ui/PoolIntelligenceFeed";
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────

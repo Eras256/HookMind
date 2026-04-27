@@ -117,14 +117,27 @@ export class LLMRouter {
         const data = await res.json() as any;
         return this._parseDecision(data.response ?? "{}");
     }
-    // ── Mock (Test / Demo) ──────────────────────────────────────────────────
+    // ── Mock (Demo) — cycles through realistic market scenarios ──────────────
     private async _queryMock(params: QueryParams): Promise<LLMDecision> {
-        log.info("Using Neural Mock for demo mode...");
-        return {
-            feeBps: 4500,
-            activateIL: true,
-            reasoning: "MOCK: Detected high variance, raising fees to capture volatility premium."
-        };
+        // Parse volatility score from the userMessage to make decision context-aware
+        let volScore = 5000;
+        try {
+            const parsed = JSON.parse(params.userMessage);
+            volScore = parsed.marketCondition?.volatilityScore ?? 5000;
+        } catch { /* ignore */ }
+
+        // Rotate through scenarios so each signal looks different on the feed
+        const minute = Math.floor(Date.now() / 20000) % 5;
+        const scenarios = [
+            { feeBps: 3000, activateIL: false, reasoning: "Low volatility detected — reducing fee to attract volume." },
+            { feeBps: 5500, activateIL: false, reasoning: "Moderate activity — setting balanced fee tier." },
+            { feeBps: 7800, activateIL: true,  reasoning: "Volatility spike detected — raising fee to protect LPs." },
+            { feeBps: 9200, activateIL: true,  reasoning: "MEV activity detected — max protection mode activated." },
+            { feeBps: 4200, activateIL: false, reasoning: "Market stabilizing — returning to normal fee range." },
+        ];
+        const decision = scenarios[minute];
+        log.info(`Mock AI decision: fee=${decision.feeBps}bps, IL=${decision.activateIL} (scenario ${minute})`);
+        return decision;
     }
 
     // ── Parser ───────────────────────────────────────────────────────────────

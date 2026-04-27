@@ -50,7 +50,7 @@ export default function YieldActivityFeed() {
                         type: il ? "IL_PROTECT" : "FEE_UPDATE",
                         title: il ? "IL Protection Activated" : `Fee Set to ${(fee / 10000).toFixed(2)}%`,
                         detail: `Vol score ${log.args.volatilityScore} · ${(fee / 100).toFixed(0)} bps`,
-                        timestamp: Date.now() - Math.random() * 3600_000,
+                        timestamp: Date.now(),
                         txHash: log.transactionHash ?? "0x",
                         blockNumber: log.blockNumber ?? BigInt(0),
                     };
