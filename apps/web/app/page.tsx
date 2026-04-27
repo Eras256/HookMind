@@ -12,6 +12,7 @@ import { useLanguage } from "@/context/LanguageContext";
 // ─────────────────────────────────────────────────────────────────────────────
 // Components
 // ─────────────────────────────────────────────────────────────────────────────
+import AgentSignalFeed from "@/components/ui/AgentSignalFeed";
 
 function FeatureCard({ icon: Icon, title, desc, color }: { icon: any, title: string, desc: string, color: string }) {
     return (
@@ -95,7 +96,15 @@ export default function HomePage() {
                     </div>
                 </motion.div>
 
-
+                {/* AI LIVE FEED */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.2 }}
+                    className="w-full max-w-4xl mt-16 text-left"
+                >
+                    <AgentSignalFeed maxItems={4} />
+                </motion.div>
             </section>
 
             {/* 2. THE PROBLEMS SECTION */}
