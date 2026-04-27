@@ -20,11 +20,27 @@ contract YieldVault is ERC4626 {
     // Hook address — only hook can deposit fees
     address public immutable HOOK;
     address public immutable ADMIN;
+    bool public paused;
+
     event EpochStarted(uint256 timestamp, uint256 previousEpochFees);
     event FeeDeposited(uint256 amount, uint256 epochTotal);
     event YieldClaimed(address indexed lp, uint256 amount);
+    event ProtocolPaused(address account);
+    event ProtocolUnpaused(address account);
     error OnlyHook();
+    error OnlyAdmin();
     error EpochNotComplete();
+    error ContractPaused();
+
+    modifier onlyAdmin() {
+        if (msg.sender != ADMIN) revert OnlyAdmin();
+        _;
+    }
+
+    modifier whenNotPaused() {
+        if (paused) revert ContractPaused();
+        _;
+    }
     constructor(
         IERC20  _usdc,
         address _hook,
@@ -34,8 +50,15 @@ contract YieldVault is ERC4626 {
         ADMIN      = _admin;
         epochStart = block.timestamp;
     }
+    /// @notice Circuit breaker for institutional risk management
+    function setPaused(bool _paused) external onlyAdmin {
+        paused = _paused;
+        if (_paused) emit ProtocolPaused(msg.sender);
+        else emit ProtocolUnpaused(msg.sender);
+    }
+
     /// @notice Called by HookMindCore afterSwap to deposit accrued fees
-    function depositFees(uint256 amount) external {
+    function depositFees(uint256 amount) external whenNotPaused {
         if (msg.sender != HOOK) revert OnlyHook();
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), amount);
         epochFeesAccrued += amount;
@@ -54,7 +77,7 @@ contract YieldVault is ERC4626 {
         return released + super.totalAssets();
     }
     /// @notice Advance to next epoch (callable by anyone after 7 days)
-    function advanceEpoch() external {
+    function advanceEpoch() external whenNotPaused {
         if (block.timestamp < epochStart + EPOCH_DURATION) revert EpochNotComplete();
         emit EpochStarted(block.timestamp, epochFeesAccrued);
         epochFeesAccrued   = 0;

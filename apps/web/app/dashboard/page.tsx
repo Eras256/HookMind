@@ -8,7 +8,7 @@ import { Zap, Activity, Shield, Cpu, Plus, Lock, X, Trophy, ChevronRight } from 
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useHookMind, usePoolIntelligence, useDynamicFee } from "@/hooks/useHookMind";
-import AgentSignalFeed from "@/components/ui/AgentSignalFeed";
+import PoolIntelligenceFeed from "@/components/ui/PoolIntelligenceFeed";
 import { parseUnits, formatEther } from "viem";
 import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
 import { useWriteContract, useReadContract } from "wagmi";
@@ -77,7 +77,7 @@ function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; on
                         <button onClick={() => toast.dismiss(t)} className="text-gray-500 hover:text-white transition-colors"><X size={14}/></button>
                     </div>
                     <p className="text-[11px] text-gray-400 font-mono leading-relaxed">
-                        SaaS activation fee processed via Unichain.
+                        Institutional node registration fee processed via Unichain.
                     </p>
                     <a 
                         href={`https://unichain-sepolia.blockscout.com/tx/${tx}`} 
@@ -126,7 +126,7 @@ function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; on
                     className="w-full py-3 bg-neural-magenta hover:bg-neural-magenta/90 disabled:opacity-50 text-black font-bold rounded-xl flex justify-center items-center gap-2"
                 >
                     {isPending ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> : <Zap size={18} />}
-                    {isPending ? "Processing..." : "Pay SaaS Fee & Deploy Agent"}
+                    {isPending ? "Processing..." : "Pay Registration Fee & Deploy Agent"}
                 </button>
             </motion.div>
         </div>
@@ -423,10 +423,10 @@ function DashboardContent() {
                     </div>
                 </div>
 
-                {/* RIGHT: LIVE AI SIGNAL FEED */}
+                {/* RIGHT: LIVE POOL INTELLIGENCE FEED (real on-chain state) */}
                 <div className="sticky top-24">
                     <div className="bg-void border border-white/10 rounded-2xl p-5 lg:shadow-[0_0_30px_rgba(0,0,0,0.5)]">
-                        <AgentSignalFeed maxItems={6} />
+                        <PoolIntelligenceFeed maxItems={6} />
                     </div>
                 </div>
 

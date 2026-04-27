@@ -25,12 +25,12 @@ export function Navbar() {
 
     const NAV_LINKS = [
         { href: "/", label: t.nav.home, icon: Home },
+        { href: "/swap", label: "Swap", icon: ArrowLeftRight },
         { href: "/dashboard", label: t.nav.dashboard, icon: LayoutGrid },
         { href: "/agents", label: t.nav.agents, icon: Cpu },
         { href: "/leaderboard", label: t.nav.rankings, icon: Trophy },
         { href: "/builder", label: t.nav.builder, icon: GitBranch },
         { href: "/pools", label: t.nav.pools, icon: Layers },
-        { href: "/swap", label: "Swap", icon: ArrowLeftRight },
         { href: "/strategies", label: t.nav.strats, icon: TrendingUp },
         { href: "/plugins", label: t.nav.plugins, icon: Puzzle },
         { href: "/skills", label: t.nav.skills, icon: Brain },

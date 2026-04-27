@@ -1,92 +1,75 @@
 'use client';
-import { motion } from 'framer-motion';
-import { ArrowLeftRight, Shield, Zap } from 'lucide-react';
-import { useAccount } from 'wagmi';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import SwapQuotePanel from '@/components/ui/SwapQuotePanel';
-import AgentSignalFeed from '@/components/ui/AgentSignalFeed';
-import { useLanguage } from '@/context/LanguageContext';
-
-// Unichain Sepolia token addresses
-const WETH: `0x${string}` = '0x4200000000000000000000000000000000000006';
-const USDC: `0x${string}` = '0x86dd85969a254258383ef3dff357671cb5161f88';
+import { motion } from "framer-motion";
+import { ArrowLeftRight, Zap, Shield, Info } from "lucide-react";
+import SwapQuotePanel from "@/components/ui/SwapQuotePanel";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function SwapPage() {
-  const { isConnected } = useAccount();
-  const { t } = useLanguage();
+    const { t } = useLanguage();
 
-  return (
-    <div className="pt-20 px-5 max-w-7xl mx-auto pb-20">
-      <div className="pt-10 mb-10">
-        <div className="inline-flex items-center gap-2 neon-badge mb-4">
-          <span className="w-1.5 h-1.5 rounded-full bg-neural-cyan animate-pulse" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-neural-cyan">
-            Powered by Uniswap Trading API
-          </span>
-        </div>
-        <h1 className="text-3xl sm:text-5xl font-black tracking-tighter mb-3">
-          Swap &amp;{' '}
-          <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-cyan to-neural-magenta">
-            Get USDC
-          </span>
-        </h1>
-        <p className="text-gray-500 max-w-xl font-mono text-sm leading-relaxed">
-          Swap any token for USDC at the best available price via Uniswap v4 and UniswapX.
-          Then deposit USDC to activate IL insurance on your liquidity positions.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* LEFT: swap panel */}
-        <div className="space-y-4">
-          {!isConnected ? (
-            <div className="glass-card p-10 flex flex-col items-center gap-4 text-center rounded-2xl">
-              <ArrowLeftRight size={32} className="text-neural-cyan/40" />
-              <p className="text-sm text-gray-500 font-mono">
-                {t.common.connect_wallet} to get a live swap quote
-              </p>
-              <ConnectButton />
+    return (
+        <div className="pt-24 px-6 max-w-7xl mx-auto pb-20 flex flex-col items-center">
+            {/* Header */}
+            <div className="text-center mb-12">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="inline-flex items-center gap-2 neon-badge mb-4"
+                >
+                    <Zap size={14} className="text-neural-cyan" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-neural-cyan">
+                        Powered by Uniswap Trading API
+                    </span>
+                </motion.div>
+                <h1 className="text-4xl sm:text-6xl font-black tracking-tighter mb-4 italic">
+                    SWAP <span className="text-transparent bg-clip-text bg-linear-to-r from-neural-magenta to-neural-cyan">ANYTHING</span>
+                </h1>
+                <p className="text-gray-500 max-w-xl font-mono text-sm leading-relaxed mx-auto">
+                    Institutional-grade routing. Zero latency. 
+                    Get the best price across Uniswap V2, V3, V4 and UniswapX in one click.
+                </p>
             </div>
-          ) : (
-            <SwapQuotePanel
-              tokenIn={{ address: WETH, symbol: 'WETH', decimals: 18 }}
-              tokenOut={{ address: USDC, symbol: 'USDC', decimals: 6 }}
-            />
-          )}
 
-          {/* Info cards */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-start gap-3">
-              <Shield size={16} className="text-neural-green shrink-0 mt-0.5" />
-              <div>
-                <div className="text-xs font-bold text-white mb-1">Best Execution</div>
-                <div className="text-[11px] text-gray-500 font-mono leading-relaxed">
-                  Routes through Uniswap v2, v3, v4 and UniswapX for the best price.
+            {/* Main Swap Container */}
+            <div className="w-full max-w-lg">
+                <SwapQuotePanel
+                    tokenIn={{ address: '0x4200000000000000000000000000000000000006', symbol: 'WETH', decimals: 18 }}
+                    tokenOut={{ address: '0x31d0220469e10c4E71834a79b1f276d740d3768F', symbol: 'USDC', decimals: 6 }}
+                />
+            </div>
+
+            {/* Info Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16 w-full">
+                <div className="glass-card p-6 border-t-2 border-neural-cyan">
+                    <div className="w-10 h-10 rounded-lg bg-neural-cyan/10 flex items-center justify-center mb-4">
+                        <Shield size={20} className="text-neural-cyan" />
+                    </div>
+                    <h3 className="text-white font-bold mb-2">MEV Protection</h3>
+                    <p className="text-xs text-gray-500 font-mono leading-relaxed">
+                        Automatic routing via UniswapX when possible to protect you from sandwich attacks and front-running.
+                    </p>
                 </div>
-              </div>
-            </div>
-            <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex items-start gap-3">
-              <Zap size={16} className="text-neural-gold shrink-0 mt-0.5" />
-              <div>
-                <div className="text-xs font-bold text-white mb-1">No Extra Fees</div>
-                <div className="text-[11px] text-gray-500 font-mono leading-relaxed">
-                  HookMind charges 0 additional fees on swaps. You only pay the Uniswap pool fee.
+
+                <div className="glass-card p-6 border-t-2 border-neural-green">
+                    <div className="w-10 h-10 rounded-lg bg-neural-green/10 flex items-center justify-center mb-4">
+                        <Zap size={20} className="text-neural-green" />
+                    </div>
+                    <h3 className="text-white font-bold mb-2">Gasless Swaps</h3>
+                    <p className="text-xs text-gray-500 font-mono leading-relaxed">
+                        UniswapX routing allows fillers to pay your gas fees, making the experience smoother than ever.
+                    </p>
                 </div>
-              </div>
+
+                <div className="glass-card p-6 border-t-2 border-neural-magenta">
+                    <div className="w-10 h-10 rounded-lg bg-neural-magenta/10 flex items-center justify-center mb-4">
+                        <Info size={20} className="text-neural-magenta" />
+                    </div>
+                    <h3 className="text-white font-bold mb-2">Best Price Routing</h3>
+                    <p className="text-xs text-gray-500 font-mono leading-relaxed">
+                        The Trading API scans all liquidity pools and private fillers to ensure you receive the maximum output.
+                    </p>
+                </div>
             </div>
-          </div>
-
-          {/* Next step hint */}
-          <div className="bg-neural-magenta/5 border border-neural-magenta/20 rounded-xl p-4 text-xs font-mono text-neural-magenta/80 leading-relaxed">
-            After swapping, head to <strong>LP Insurance</strong> to deposit USDC and protect your liquidity positions against impermanent loss.
-          </div>
         </div>
-
-        {/* RIGHT: live AI signal feed */}
-        <div className="glass-card p-5 rounded-2xl">
-          <AgentSignalFeed maxItems={8} />
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

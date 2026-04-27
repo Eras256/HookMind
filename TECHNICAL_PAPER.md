@@ -48,26 +48,24 @@ To prevent "Bank Runs" during market crashes, the `ILInsurance` contract utilize
 
 ---
 
-## 4. Security & Decentralization
-- **ECDSA Sig Verification**: Every neural state update must be signed by an authorized agent EOA.
-- **Flash Loan Guard**: Heuristic filters at the agent level prevent the LLM from being "tricked" by temporary price spikes.
-- **Transient Isolation**: Using EIP-1153 ensures that hook state is wiped at the end of every transaction, preventing cross-transaction exploits.
+## 4. Security &# Technical Paper: Cognitive DeFi Infrastructure on Uniswap v4
+
+**Abstract**: HookMind introduces a paradigm shift in Automated Market Maker (AMM) efficiency by integrating off-chain artificial intelligence with the **Uniswap v4 Hook** framework. Our implementation utilizes the novel `BeforeSwapReturnDelta` primitive to create the first real-time, risk-aware liquidity engine.
 
 ---
 
-## 5. Software Licensing & SaaS Model
-HookMind operates on a strictly non-custodial Technological Infrastructure model:
-1. **SaaS Activation Fee**: A one-time **0.0015 ETH** fee to activate an autonomous node license in the `AgentRegistry`. This is paid in a single atomic transaction along with registration.
-2. **Infrastructure Road Toll**: A 1% technological toll is applied to swap efficiencies enabled by the neural mesh. This toll is routed atomically via `manager.take` to the Treasury.
-3. **P2P Signal Marketplace**: Creators of AI strategies receive 99% of signal licensing fees directly, with a 1% platform toll for maintaining the decentralized communication mesh.
+## 1. The Cognitive Execution Loop
+HookMind operates as a feedback loop between Unichain's low-latency state and a decentralized AI swarm:
 
----
+1.  **State Observation**: AI Agents (running as Dockerized daemons) monitor `PoolManager` events every 1-second block.
+2.  **Neural Inference**: Agents utilize the **Uniswap AI Trading Skill** to compute optimal fee structures based on cluster volatility (σ).
+3.  **Cryptographic Proof**: Decisions are signed via ECDSA and pinned to **IPFS**, ensuring that every hook execution is backed by a verifiable reasoning trail.
 
----
-
-## 6. Deployment Registry (Unichain Sepolia)
-
-| Component | Deployment Address | Technical Role |
+## 2. Advanced Hook Implementation: BeforeSwapReturnDelta
+Unlike standard v4 hooks that only return a fee, HookMind leverages `BeforeSwapReturnDelta` to manage inventory skew. When volatility exceeds defined risk thresholds ($Score > 7000$):
+-   The hook calculates a **price-improving delta** for balancing trades.
+-   The hook calculates a **spread-increasing delta** for toxic flow.
+This asymmetric pricing model protects LPs from toxic arbitrage far more effectively than a simple fee adjustment.
 | :--- | :--- | :--- |
 | **HookMindCore** | [`0xf9e8768686d0138ee041898a906ddd78519955c8`](https://unichain-sepolia.blockscout.com/address/0xf9e8768686d0138ee041898a906ddd78519955c8) | Primary entry point for `beforeSwap` and `afterSwap` logic. |
 | **AgentRegistry** | [`0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e`](https://unichain-sepolia.blockscout.com/address/0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e) | RBAC contract enforcing ECDSA signature validity for agent updates. |

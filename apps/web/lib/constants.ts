@@ -1,9 +1,11 @@
-export const HOOK_MIND_CORE_ADDRESS = "0xf9e8768686d0138ee041898a906ddd78519955c8" as const;
-export const AGENT_REGISTRY_ADDRESS = "0xb3411c3e83bf0e79a00821206fb89ff8130c5f4e" as const;
-export const YIELD_VAULT_ADDRESS = "0xa0242258bc39d2b2daaf4913f30803f77b01a79b" as const;
-export const IL_INSURANCE_ADDRESS = "0x42aa32c49e993936d23a3cc746173c6954a07eef" as const;
-export const POOL_MANAGER_ADDRESS = "0x00B036B58a818B1BC34d502D3fE730Db729e62AC" as const;
-export const USDC_ADDRESS = "0x86dd85969a254258383ef3dff357671cb5161f88" as const;
+// Active deployment — verified on Unichain Sepolia (pool initialized, agent registered)
+export const HOOK_MIND_CORE_ADDRESS = "0x56e1aC266Fa45824d02AFAf7569cdd6Fd1ee15c0" as const;
+export const AGENT_REGISTRY_ADDRESS = "0xE23380b98595d8adffcF59672f70b1209d521693" as const;
+export const YIELD_VAULT_ADDRESS    = "0x3138BC6729187d4E558747019eD1448a5a82e939" as const;
+export const IL_INSURANCE_ADDRESS   = "0x656008F87C3CE678C944FbaD938C3A5A5a8f722B" as const;
+export const POOL_MANAGER_ADDRESS   = "0x00B036B58a818B1BC34d502D3fE730Db729e62AC" as const;
+export const USDC_ADDRESS           = "0x31d0220469e10c4E71834a79b1f276d740d3768F" as const;
+export const TARGET_POOL_ID         = "0xb7cace89ba6c8b33f5529e576a7f0820d42b587e1a2e518a01e176ffe12fb9fe" as const;
 
 import HookMindCore from "./abis/HookMindCore.json";
 import AgentRegistry from "./abis/AgentRegistry.json";
