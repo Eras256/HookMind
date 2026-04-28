@@ -6,6 +6,8 @@
     "main": "dist/index.js",
     "scripts": {
         "dev": "tsx watch src/index.ts",
+        "fleet": "tsx src/multi-runner.ts",
+        "fleet:register": "tsx src/multi-runner.ts --register",
         "build": "tsc --project tsconfig.json",
         "start": "node dist/index.js"
     },

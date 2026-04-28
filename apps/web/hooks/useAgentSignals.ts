@@ -19,8 +19,11 @@ export interface AgentSignal {
   timestamp: number | null;
 }
 
-// Unichain Sepolia RPC max range is 10,000 blocks (~2.8h at 1 block/sec)
-const LOOKBACK_BLOCKS = BigInt(9_999);
+// Stay well under the 10,000-block RPC limit.
+// Using a pinned toBlock (not "latest") avoids the race condition where
+// getBlockNumber() returns a cached value but eth_getLogs resolves "latest"
+// to a newer block, making the effective range exceed the limit.
+const LOOKBACK_BLOCKS = BigInt(7_500);
 
 export function useAgentSignals() {
   const client = usePublicClient();
@@ -34,14 +37,14 @@ export function useAgentSignals() {
     setError(null);
 
     try {
-      const latestBlock = await client.getBlockNumber();
-      const fromBlock = latestBlock > LOOKBACK_BLOCKS ? latestBlock - LOOKBACK_BLOCKS : BigInt(0);
+      const toBlock = await client.getBlockNumber();
+      const fromBlock = toBlock > LOOKBACK_BLOCKS ? toBlock - LOOKBACK_BLOCKS : BigInt(0);
 
       const logs = await client.getLogs({
         address: HOOK_MIND_CORE_ADDRESS,
         event: AGENT_SIGNAL_EVENT,
         fromBlock,
-        toBlock: 'latest',
+        toBlock, // exact block number, not "latest" — prevents range race condition
       });
 
       // Decode and sort descending (most recent first)

@@ -8,7 +8,9 @@ import "@xyflow/react/dist/style.css";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Save, Copy, ChevronRight, Brain, Zap, Activity, PlusCircle, MinusCircle, Clock, TrendingUp, Shield, Radio, Search, Cpu, Lock, Sliders, Database, PauseCircle, Pin, MessageSquare, KeyRound, X } from "lucide-react";
-import { useWriteContract, useReadContract } from "wagmi";
+import { useWriteContract, useReadContract, useAccount } from "wagmi";
+import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
+import { useRouter } from "next/navigation";
 import { parseUnits } from "viem";
 import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
 import { useLanguage } from "@/context/LanguageContext";
@@ -59,6 +61,8 @@ function BuilderContent() {
     const [edges, setEdges, onEdgesChange] = useEdgesState(INITIAL_EDGES);
     const [stratName, setStratName] = useState(t.builder.default_strat_name);
     const [isDeploying, setIsDeploying] = useState(false);
+    const { address } = useAccount();
+    const router = useRouter();
 
     const hookNodeTemplates = useMemo(() => [
         {
@@ -201,46 +205,51 @@ function BuilderContent() {
     };
 
     const deployStrategy = async () => {
-        const fee = activationFeeNative ? (activationFeeNative as any) : parseUnits("0.0015", 18);
+        if (!address) {
+            toast.error("Connect your wallet first");
+            return;
+        }
+        const fee = activationFeeNative ? (activationFeeNative as bigint) : parseUnits("0.0015", 18);
+        // Generate a fresh operator address for this agent deployment
+        const operatorAddress = privateKeyToAddress(generatePrivateKey());
         setIsDeploying(true);
         toast.loading(t.builder.deploying_toast, { id: "deploy-builder" });
-        
+
         try {
             const tx = await writeContractAsync({
                 address: AGENT_REGISTRY_ADDRESS,
                 abi: AGENT_REGISTRY_ABI as any,
-                functionName: 'registerAgent',
-                args: [`0x${Array.from({length: 40}, () => Math.floor(Math.random()*16).toString(16)).join('')}`, stratName || t.builder.default_strat_name, parseUnits("150", 6)], 
-                value: fee as any,
-            } as any);
+                functionName: "registerAgent",
+                args: [operatorAddress, stratName || t.builder.default_strat_name, BigInt(0)],
+                value: fee,
+            });
 
-            toast.custom((to) => (
-                <div className="bg-[#0f0f0f] border border-neural-magenta/40 rounded-xl p-4 w-full min-w-[300px] shadow-[0_0_25px_rgba(252,114,255,0.25)] flex flex-col gap-2 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1/2 h-px bg-linear-to-r from-transparent via-neural-magenta to-transparent opacity-50" />
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Zap size={16} className="text-neural-magenta animate-pulse" />
-                            <span className="font-black text-white tracking-tight">{t.builder.strategy_deployed}</span>
-                        </div>
-                        <button onClick={() => toast.dismiss(to)} className="text-gray-500 hover:text-white transition-colors"><X size={14}/></button>
-                    </div>
-                    <p className="text-[11px] text-gray-400 font-mono leading-relaxed">
-                        {t.builder.deployed_desc}
-                    </p>
-                    <a 
-                        href={`https://unichain-sepolia.blockscout.com/tx/${tx}`} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="mt-2 text-[11px] font-mono font-bold text-neural-magenta border border-neural-magenta/30 hover:bg-neural-magenta/10 hover:text-white px-3 py-2 rounded-lg flex items-center justify-between transition-all group"
-                    >
-                        <span>{t.builder.view_blockscout}</span>
-                        <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
-                    </a>
-                </div>
-            ), { id: "deploy-builder", duration: 15000 });
+            // Save agent to dashboard fleet in localStorage
+            if (address) {
+                const localKey = `hm-fleet-${address}`;
+                const existing = JSON.parse(localStorage.getItem(localKey) || "[]");
+                const newAgent = {
+                    id: `agent-${Date.now()}`,
+                    poolPair: "USDC/WETH",
+                    poolId: "0x3faf657fade7f4f22456018f3529e083bd153065269e41cbd75d6dd9cbd48ca5",
+                    strategy: stratName || t.builder.default_strat_name,
+                    status: "RUNNING",
+                    currentFee: 3000,
+                    volScore: 3000,
+                    uptime: "0m",
+                    agentEOA: operatorAddress,
+                    lastSignalCid: "—",
+                    createdAt: Date.now(),
+                };
+                localStorage.setItem(localKey, JSON.stringify([newAgent, ...existing]));
+            }
+
+            toast.success(`"${stratName}" deployed! Redirecting to dashboard…`, { id: "deploy-builder" });
+            await new Promise(r => setTimeout(r, 1200));
+            router.push("/dashboard");
 
         } catch (e: any) {
-            toast.error(e.message || t.builder.deployment_failed, { id: "deploy-builder" });
+            toast.error(e.shortMessage || e.message || t.builder.deployment_failed, { id: "deploy-builder" });
         } finally {
             setIsDeploying(false);
         }
@@ -259,12 +268,16 @@ function BuilderContent() {
                                 {t.builder.subtitle}
                             </span>
                         </h1>
-                        <input
-                            value={stratName}
-                            onChange={(e) => setStratName(e.target.value)}
-                            className="text-xs text-gray-500 bg-transparent border-none outline-none font-mono w-72"
-                            placeholder={t.builder.strat_name_placeholder}
-                        />
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-[10px] text-gray-600 font-mono uppercase tracking-widest">Agent name:</span>
+                            <input
+                                value={stratName}
+                                onChange={(e) => setStratName(e.target.value)}
+                                className="text-xs text-neural-cyan bg-neural-cyan/5 border border-neural-cyan/20 rounded-lg px-2 py-1 outline-none font-mono w-52 focus:border-neural-cyan/60 transition-colors placeholder:text-gray-600"
+                                placeholder={t.builder.strat_name_placeholder}
+                                maxLength={32}
+                            />
+                        </div>
                     </div>
                 </div>
                 <div className="flex gap-2">

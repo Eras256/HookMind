@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowLeftRight, Zap, Shield, Info } from "lucide-react";
 import SwapQuotePanel from "@/components/ui/SwapQuotePanel";
 import { useLanguage } from "@/context/LanguageContext";
+import { USDC_ADDRESS, WETH_ADDRESS } from "@/lib/constants";
 
 export default function SwapPage() {
     const { t } = useLanguage();
@@ -33,8 +34,8 @@ export default function SwapPage() {
             {/* Main Swap Container */}
             <div className="w-full max-w-lg">
                 <SwapQuotePanel
-                    tokenIn={{ address: '0x4200000000000000000000000000000000000006', symbol: 'WETH', decimals: 18 }}
-                    tokenOut={{ address: '0x7780Ba8F829A797D17634E79519e2fdF929fD698', symbol: 'USDC', decimals: 6 }}
+                    tokenIn={{ address: WETH_ADDRESS, symbol: 'WETH', decimals: 18 }}
+                    tokenOut={{ address: USDC_ADDRESS, symbol: 'USDC', decimals: 6 }}
                 />
             </div>
 

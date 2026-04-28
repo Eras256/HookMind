@@ -36,8 +36,10 @@ function SignalCard({ signal, index }: { signal: AgentSignal; index: number }) {
   const vl = volLabel(signal.volatilityScore);
   const volPct = signal.volatilityScore / 100;
 
-  const ipfsUrl = signal.ipfsCid
-    ? `https://ipfs.io/ipfs/${signal.ipfsCid}`
+  const rawCid = signal.ipfsCid.replace(/^ipfs:\/\//, '');
+  const isValidCid = rawCid.length > 10 && !rawCid.includes('pending') && !rawCid.includes('testnet');
+  const ipfsUrl = isValidCid
+    ? `https://gateway.pinata.cloud/ipfs/${rawCid}`
     : null;
 
   const explorerUrl = `https://sepolia.uniscan.xyz/tx/${signal.txHash}`;
@@ -47,7 +49,8 @@ function SignalCard({ signal, index }: { signal: AgentSignal; index: number }) {
       initial={{ opacity: 0, x: -12 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.35, delay: index * 0.04 }}
-      className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-3 hover:border-white/20 transition-colors"
+      onClick={() => window.open(explorerUrl, '_blank', 'noopener,noreferrer')}
+      className="bg-white/3 border border-white/10 rounded-xl p-4 space-y-3 hover:border-neural-cyan/40 hover:bg-neural-cyan/5 transition-all cursor-pointer group"
     >
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
@@ -71,14 +74,6 @@ function SignalCard({ signal, index }: { signal: AgentSignal; index: number }) {
               <ShieldOff size={9} /> IL OFF
             </span>
           )}
-          <a
-            href={explorerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-gray-600 hover:text-neural-cyan transition-colors"
-          >
-            <ExternalLink size={12} />
-          </a>
         </div>
       </div>
 
@@ -119,6 +114,7 @@ function SignalCard({ signal, index }: { signal: AgentSignal; index: number }) {
             href={ipfsUrl}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
             className="flex items-center gap-1 text-neural-magenta/70 hover:text-neural-magenta transition-colors"
           >
             <ExternalLink size={9} /> AI Audit Log
@@ -126,9 +122,12 @@ function SignalCard({ signal, index }: { signal: AgentSignal; index: number }) {
         )}
       </div>
 
-      {/* Block number */}
-      <div className="text-[9px] text-gray-700 font-mono">
-        block #{signal.blockNumber.toString()}
+      {/* Block + explorer hint */}
+      <div className="flex items-center justify-between text-[9px] font-mono">
+        <span className="text-gray-700">block #{signal.blockNumber.toString()}</span>
+        <span className="flex items-center gap-1 text-gray-700 group-hover:text-neural-cyan transition-colors">
+          <ExternalLink size={9} /> Ver en Uniscan
+        </span>
       </div>
     </motion.div>
   );

@@ -9,6 +9,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useHookMind, usePoolIntelligence, useDynamicFee } from "@/hooks/useHookMind";
 import { parseUnits, formatEther } from "viem";
+import { generatePrivateKey, privateKeyToAddress } from "viem/accounts";
 import { AGENT_REGISTRY_ADDRESS, AGENT_REGISTRY_ABI } from "@/lib/constants";
 import { useWriteContract, useReadContract } from "wagmi";
 import { LEADERBOARD_DATA } from "@/app/leaderboard/data";
@@ -36,12 +37,21 @@ interface AgentFleet {
 // Simplified Modals for Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
-function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; onClose: () => void; onDeploy: () => void }) {
+function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; onClose: () => void; onDeploy: (operatorAddress: `0x${string}`) => void }) {
     const { address } = useAccount();
     const { writeContractAsync } = useWriteContract();
     const [isPending, setIsPending] = useState(false);
+    // Each time the modal opens, generate a fresh operator keypair.
+    // The connected wallet pays the fee; the operator is the signing identity of this specific agent.
+    const [operatorAddress, setOperatorAddress] = useState<`0x${string}` | null>(null);
 
-    // Fetch dynamic native ETH activation fee from AgentRegistry
+    useEffect(() => {
+        if (isOpen) {
+            const pk = generatePrivateKey();
+            setOperatorAddress(privateKeyToAddress(pk));
+        }
+    }, [isOpen]);
+
     const { data: activationFeeNative } = useReadContract({
         address: AGENT_REGISTRY_ADDRESS,
         abi: AGENT_REGISTRY_ABI,
@@ -51,21 +61,21 @@ function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; on
     if (!isOpen) return null;
 
     const feeEth = activationFeeNative ? formatEther(activationFeeNative as bigint) : "0.0015";
+    const shortOp = operatorAddress ? `${operatorAddress.slice(0, 8)}…${operatorAddress.slice(-6)}` : "generating…";
 
     const handleConfirm = async () => {
-        if (!activationFeeNative) return;
+        if (!activationFeeNative || !address || !operatorAddress) return;
         setIsPending(true);
         toast.loading("Deploying Agent on Unichain...", { id: "deploy-tx" });
         try {
             const tx = await writeContractAsync({
                 address: AGENT_REGISTRY_ADDRESS,
                 abi: AGENT_REGISTRY_ABI,
-                functionName: 'registerAgent',
-                // The operator EOA is the connected wallet address acting as the agent key
-                args: [address as `0x${string}`, "claude", parseUnits("0", 6)],
+                functionName: "registerAgent",
+                args: [operatorAddress, "claude", BigInt(0)],
                 value: activationFeeNative as bigint,
             });
-            
+
             toast.custom((t) => (
                 <div className="bg-[#0f0f0f] border border-neural-magenta/40 rounded-xl p-4 w-full min-w-[300px] shadow-[0_0_25px_rgba(252,114,255,0.25)] flex flex-col gap-2 relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-1/2 h-px bg-linear-to-r from-transparent via-neural-magenta to-transparent opacity-50" />
@@ -77,23 +87,23 @@ function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; on
                         <button onClick={() => toast.dismiss(t)} className="text-gray-500 hover:text-white transition-colors"><X size={14}/></button>
                     </div>
                     <p className="text-[11px] text-gray-400 font-mono leading-relaxed">
-                        Institutional node registration fee processed via Unichain.
+                        New operator node registered on Unichain Sepolia.
                     </p>
-                    <a 
-                        href={`https://unichain-sepolia.blockscout.com/tx/${tx}`} 
-                        target="_blank" 
+                    <a
+                        href={`https://sepolia.uniscan.xyz/tx/${tx}`}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="mt-2 text-[11px] font-mono font-bold text-neural-magenta border border-neural-magenta/30 hover:bg-neural-magenta/10 hover:text-white px-3 py-2 rounded-lg flex items-center justify-between transition-all group"
                     >
-                        <span>View on Blockscout</span>
+                        <span>View on Uniscan</span>
                         <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
                     </a>
                 </div>
             ), { id: "deploy-tx", duration: 15000 });
-            onDeploy();
+            onDeploy(operatorAddress);
             onClose();
         } catch (e: any) {
-            toast.error(e.message || "Transaction failed", { id: "deploy-tx" });
+            toast.error(e.shortMessage || e.message || "Transaction failed", { id: "deploy-tx" });
         } finally {
             setIsPending(false);
         }
@@ -106,23 +116,27 @@ function DeployPaymentModal({ isOpen, onClose, onDeploy }: { isOpen: boolean; on
                 <h2 className="text-xl font-black mb-2 text-white">Deploy Hook Agent</h2>
                 <p className="text-sm text-gray-400 mb-6 font-mono">Pay the protocol fee in native ETH to activate a new autonomous node on Unichain.</p>
 
-                <div className="bg-black/50 border border-white/5 rounded-xl p-4 mb-6">
-                    <div className="flex justify-between items-center mb-2">
+                <div className="bg-black/50 border border-white/5 rounded-xl p-4 mb-6 space-y-3">
+                    <div className="flex justify-between items-center">
                         <span className="text-gray-400 text-xs font-mono uppercase">Agent Target</span>
-                        <span className="text-white font-bold font-mono">WETH/USDC (0x...)</span>
+                        <span className="text-white font-bold font-mono">WETH/USDC</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-gray-400 text-xs font-mono uppercase">Operator Address</span>
+                        <span className="text-neural-cyan font-mono text-xs">{shortOp}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-gray-400 text-xs font-mono uppercase">Deployment Fee</span>
                         <div className="text-right">
-                         <span className="text-neural-green font-bold font-mono block">{Number(feeEth).toFixed(4)} ETH</span>
-                         <span className="text-gray-500 text-[10px] font-mono">(~$5.00 USD)</span>
+                            <span className="text-neural-green font-bold font-mono block">{Number(feeEth).toFixed(4)} ETH</span>
+                            <span className="text-gray-500 text-[10px] font-mono">(~$5.00 USD)</span>
                         </div>
                     </div>
                 </div>
 
                 <button
                     onClick={handleConfirm}
-                    disabled={isPending || !activationFeeNative}
+                    disabled={isPending || !activationFeeNative || !operatorAddress}
                     className="w-full py-3 bg-neural-magenta hover:bg-neural-magenta/90 disabled:opacity-50 text-black font-bold rounded-xl flex justify-center items-center gap-2"
                 >
                     {isPending ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" /> : <Zap size={18} />}
@@ -263,7 +277,7 @@ function DashboardContent() {
         }));
     }, [activeAgents, isInitialized, address]);
 
-    // 4. Modal 3: AutoStart
+    // 4. AutoStart from URL
     useEffect(() => {
         if (searchParams.get("autostart") === "true" && isConnected) {
             router.replace("/");
@@ -271,18 +285,38 @@ function DashboardContent() {
         }
     }, [searchParams, isConnected, router]);
 
-    const handleDeployAgent = () => {
+    // 5. Update uptime and sync live fee/vol every 60s
+    useEffect(() => {
+        const tick = () => {
+            setActiveAgents(prev => prev.map(agent => {
+                const mins = Math.floor((Date.now() - agent.createdAt) / 60000);
+                const hrs = Math.floor(mins / 60);
+                const uptime = hrs > 0 ? `${hrs}h ${mins % 60}m` : `${mins}m`;
+                return {
+                    ...agent,
+                    uptime,
+                    currentFee: liveStats.currentFee || agent.currentFee,
+                    volScore: liveStats.volatilityScore || agent.volScore,
+                };
+            }));
+        };
+        tick();
+        const id = setInterval(tick, 60000);
+        return () => clearInterval(id);
+    }, [liveStats.currentFee, liveStats.volatilityScore]);
+
+    const handleDeployAgent = (operatorAddress: `0x${string}`) => {
         const newAgent: AgentFleet = {
             id: `agent-${Date.now()}`,
             poolPair: "USDC/WETH",
             poolId: "0x3faf657fade7f4f22456018f3529e083bd153065269e41cbd75d6dd9cbd48ca5",
             strategy: "AI Dynamic Fees",
             status: "RUNNING",
-            currentFee: 3000,
-            volScore: 3000,
+            currentFee: liveStats.currentFee,
+            volScore: liveStats.volatilityScore,
             uptime: "0m",
-            agentEOA: address!,
-            lastSignalCid: "Qm...",
+            agentEOA: operatorAddress,
+            lastSignalCid: "—",
             createdAt: Date.now(),
         };
         setActiveAgents(prev => [newAgent, ...prev]);
@@ -394,6 +428,9 @@ function DashboardContent() {
                                             <div>
                                                 <div className="font-bold text-white group-hover:text-neural-magenta transition-colors text-lg font-mono tracking-tight">{agent.poolPair}</div>
                                                 <div className="text-xs text-gray-500 font-mono mt-0.5">{agent.strategy}</div>
+                                                <div className="text-[10px] text-neural-cyan/60 font-mono mt-1">
+                                                    op: {agent.agentEOA.slice(0, 8)}…{agent.agentEOA.slice(-6)}
+                                                </div>
                                             </div>
                                             <div className={`text-[10px] px-2.5 py-1 rounded-full font-mono font-bold uppercase ${agent.status === "RUNNING" ? "bg-neural-green/10 text-neural-green border border-neural-green/20" : "bg-neural-red/10 text-neural-red border border-neural-red/20"}`}>
                                                 <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${agent.status === "RUNNING" ? "bg-neural-green animate-pulse shadow-[0_0_5px_var(--color-neural-green)]" : "bg-neural-red"}`} />

@@ -9,93 +9,35 @@ import {
     Crown, Star, Calendar, ExternalLink, ChevronUp, ChevronDown,
     Medal, Target, Clock, DollarSign, Info
 } from 'lucide-react';
-import { LEADERBOARD_DATA, LeaderboardEntry } from './data';
+import { useLeaderboard } from '@/hooks/useLeaderboard';
+import { Loader2, Radio } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 
 export default function LeaderboardPage() {
     const { t } = useLanguage();
     const { address } = useAccount();
+    const { entries, loading, error, refresh } = useLeaderboard(address);
 
-    // ═══════════════════════════════════════════
-    // ESTADO
-    // ═══════════════════════════════════════════
-    const [sortBy, setSortBy] = useState<'signalsSent' | 'accuracy' | 'uptime' | 'totalRevenue'>('signalsSent');
+    const [sortBy, setSortBy] = useState<'signalsSent' | 'avgFeeBps' | 'ilProtectionRate'>('signalsSent');
     const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
-    const [filtermodel, setFilterModel] = useState<string>(t.leaderboard.filter_all);
-    const [highlightUser, setHighlightUser] = useState(true);
     const [expanded, setExpanded] = useState<number | null>(null);
 
-    // ═══════════════════════════════════════════
-    // INYECTAR EL WALLET ACTUAL EN EL LEADERBOARD
-    // ═══════════════════════════════════════════
-    const enrichedData = useMemo(() => {
-        let localStats = { signalsSent: 0, accuracy: 0, uptime: 0, poolsManaged: 0, totalRevenue: 0 };
-        let nodeSettings = { provider: 'Unknown' };
-
-        if (typeof window !== 'undefined') {
-            try {
-                localStats = JSON.parse(localStorage.getItem('hm-my-stats') || '{}');
-                nodeSettings = JSON.parse(localStorage.getItem('hm-node-settings') || '{}');
-            } catch (e) { }
-        }
-
-        const withUser = LEADERBOARD_DATA.map(entry => ({
-            ...entry,
-            isCurrentUser: address
-                ? entry.address.toLowerCase() === address.toLowerCase()
-                : false,
-        }));
-
-        const userAlreadyIn = withUser.some(e => e.isCurrentUser);
-
-        if (!userAlreadyIn && address) {
-            withUser.push({
-                rank: withUser.length + 1,
-                address: address,
-                signalsSent: localStats.signalsSent || 0,
-                accuracy: localStats.accuracy || 0,
-                uptime: localStats.uptime || 0,
-                poolsManaged: localStats.poolsManaged || 0,
-                totalRevenue: localStats.totalRevenue || 0,
-                badge: localStats.signalsSent > 0 ? t.leaderboard.new_node : t.leaderboard.unranked,
-                badgeColor: 'text-gray-500 border-gray-500/30 bg-gray-500/10',
-                joinedDaysAgo: 0,
-                model: nodeSettings.provider || 'Unknown',
-                isCurrentUser: true,
-            });
-        }
-
-        return withUser;
-    }, [address, t]);
-
-    // ═══════════════════════════════════════════
-    // SORT + FILTER
-    // ═══════════════════════════════════════════
     const sortedFiltered = useMemo(() => {
-        let data = [...enrichedData];
-
-        if (filtermodel !== t.leaderboard.filter_all) {
-            data = data.filter(e => e.model === filtermodel);
-        }
-
-        return data.sort((a, b) => {
+        return [...entries].sort((a, b) => {
             const diff = a[sortBy] - b[sortBy];
             return sortDir === 'desc' ? -diff : diff;
         });
-    }, [enrichedData, sortBy, sortDir, filtermodel, t]);
+    }, [entries, sortBy, sortDir]);
 
     const toggleSort = (key: typeof sortBy) => {
         if (sortBy === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc');
         else { setSortBy(key); setSortDir('desc'); }
     };
 
-    // ═══════════════════════════════════════════
-    // SUMMARY STATS
-    // ═══════════════════════════════════════════
-    const totalSignals = enrichedData.reduce((s, e) => s + e.signalsSent, 0);
-    const avgAccuracy = Math.round(enrichedData.reduce((s, e) => s + e.accuracy, 0) / enrichedData.length * 10) / 10;
-    const totalRev = enrichedData.reduce((s, e) => s + e.totalRevenue, 0);
-    const activeNodes = enrichedData.filter(e => e.uptime > 90).length;
+    const totalSignals = entries.reduce((s, e) => s + e.signalsSent, 0);
+    const avgILRate = entries.length > 0 ? Math.round(entries.reduce((s, e) => s + e.ilProtectionRate, 0) / entries.length) : 0;
+    const activeNodes = entries.length;
+    const topAgentSignals = entries[0]?.signalsSent ?? 0;
 
     return (
         <main className="min-h-screen bg-void text-white">
@@ -132,10 +74,10 @@ export default function LeaderboardPage() {
                 {/* ═══ GLOBAL STATS (4 KPIs) ═══ */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                     {[
-                        { label: t.leaderboard.stat_total_signals, value: totalSignals.toLocaleString(), icon: Zap, color: 'text-neural-magenta' },
-                        { label: t.leaderboard.stat_accuracy, value: `${avgAccuracy}%`, icon: Target, color: 'text-neural-cyan' },
-                        { label: t.leaderboard.stat_revenue, value: `$${totalRev.toLocaleString()} USDC`, icon: DollarSign, color: 'text-neural-green' },
-                        { label: t.leaderboard.stat_active_nodes, value: activeNodes.toString(), icon: Activity, color: 'text-purple-400' },
+                        { label: 'Total Signals On-Chain', value: loading ? '—' : totalSignals.toLocaleString(), icon: Zap, color: 'text-neural-magenta' },
+                        { label: 'IL Protection Rate', value: loading ? '—' : `${avgILRate}%`, icon: Shield, color: 'text-neural-cyan' },
+                        { label: 'Top Agent Signals', value: loading ? '—' : topAgentSignals.toLocaleString(), icon: Crown, color: 'text-neural-green' },
+                        { label: 'Active Agents', value: loading ? '—' : activeNodes.toString(), icon: Activity, color: 'text-purple-400' },
                     ].map((stat, i) => (
                         <motion.div
                             key={stat.label}
@@ -167,14 +109,14 @@ export default function LeaderboardPage() {
                     >
                         <div className="text-4xl mb-2">🥈</div>
                         <div className="text-slate-300 font-bold text-sm">
-                            {enrichedData[1]?.ens || `${enrichedData[1]?.address.slice(0, 6)}...${enrichedData[1]?.address.slice(-4)}`}
+                            {`${entries[1]?.address.slice(0, 6)}...${entries[1]?.address.slice(-4)}`}
                         </div>
                         <div className="text-white/30 text-xs mt-1">
-                            {enrichedData[1]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
+                            {entries[1]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
                         </div>
                         <div className="mt-2 text-xs border border-slate-400/20 bg-slate-400/10 
                             text-slate-300 rounded-full px-2 py-0.5 inline-block">
-                            {enrichedData[1]?.accuracy}% {t.leaderboard.accuracy}
+                            {entries[1]?.accuracy}% {t.leaderboard.accuracy}
                         </div>
                     </motion.div>
 
@@ -192,17 +134,17 @@ export default function LeaderboardPage() {
                         </div>
                         <div className="text-5xl mb-2 mt-2">🥇</div>
                         <div className="text-amber-300 font-bold">
-                            {enrichedData[0]?.ens || `${enrichedData[0]?.address.slice(0, 6)}...${enrichedData[0]?.address.slice(-4)}`}
+                            {`${entries[0]?.address.slice(0, 6)}...${entries[0]?.address.slice(-4)}`}
                         </div>
                         <div className="text-white/50 text-xs mt-1">
-                            {enrichedData[0]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
+                            {entries[0]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
                         </div>
                         <div className="mt-2 text-xs border border-amber-400/30 bg-amber-400/10 
                             text-amber-400 rounded-full px-2 py-0.5 inline-block">
-                            {enrichedData[0]?.accuracy}% {t.leaderboard.accuracy}
+                            {entries[0]?.accuracy}% {t.leaderboard.accuracy}
                         </div>
                         <div className="mt-1 text-xs text-amber-300/60">
-                            {enrichedData[0]?.poolsManaged} {t.leaderboard.pools_managed}
+                            {entries[0]?.poolsManaged} {t.leaderboard.pools_managed}
                         </div>
                     </motion.div>
 
@@ -216,46 +158,34 @@ export default function LeaderboardPage() {
                     >
                         <div className="text-4xl mb-2">🥉</div>
                         <div className="text-orange-300 font-bold text-sm">
-                            {enrichedData[2]?.ens || `${enrichedData[2]?.address.slice(0, 6)}...${enrichedData[2]?.address.slice(-4)}`}
+                            {`${entries[2]?.address.slice(0, 6)}...${entries[2]?.address.slice(-4)}`}
                         </div>
                         <div className="text-white/30 text-xs mt-1">
-                            {enrichedData[2]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
+                            {entries[2]?.signalsSent.toLocaleString()} {t.leaderboard.signals}
                         </div>
-                        <div className="mt-2 text-xs border border-orange-400/20 bg-orange-400/10 
+                        <div className="mt-2 text-xs border border-orange-400/20 bg-orange-400/10
                             text-orange-300 rounded-full px-2 py-0.5 inline-block">
-                            {enrichedData[2]?.accuracy}% {t.leaderboard.accuracy}
+                            {entries[2]?.ilProtectionRate}% IL Active
                         </div>
                     </motion.div>
                 </div>
 
-                {/* ═══ FILTROS Y SORT ═══ */}
-                <div className="flex flex-col sm:flex-row gap-3 mb-6">
-                    <div className="flex gap-2 flex-wrap">
-                        {[t.leaderboard.filter_all, 'Claude 4.6', 'GPT-4o', 'Grok 3', 'Gemini 2.0', 'Ollama (Local)'].map(model => (
-                            <button
-                                key={model}
-                                onClick={() => setFilterModel(model)}
-                                className={`text-xs px-3 py-1.5 rounded-full border transition-all ${filtermodel === model
-                                    ? 'border-neural-magenta bg-neural-magenta/15 text-neural-magenta'
-                                    : 'border-white/10 bg-white/5 text-white/40 hover:border-white/20'
-                                    }`}
-                            >
-                                {model}
-                            </button>
-                        ))}
+                {/* ═══ CONTROLES ═══ */}
+                <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-neural-cyan animate-pulse" />
+                        <span className="text-[10px] font-mono text-neural-cyan uppercase tracking-widest">
+                            Live · Unichain Sepolia · {entries.length} agents on-chain
+                        </span>
                     </div>
-                    {address && (
-                        <button
-                            onClick={() => setHighlightUser(h => !h)}
-                            className={`ml-auto text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${highlightUser
-                                ? 'border-neural-cyan bg-neural-cyan/10 text-neural-cyan'
-                                : 'border-white/10 text-white/30'
-                                }`}
-                        >
-                            <Star size={12} />
-                            {t.leaderboard.my_position}
-                        </button>
-                    )}
+                    <button
+                        onClick={refresh}
+                        disabled={loading}
+                        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-white/10 text-white/40 hover:border-neural-cyan/40 hover:text-neural-cyan transition-all"
+                    >
+                        <Loader2 size={11} className={loading ? 'animate-spin' : ''} />
+                        Refresh
+                    </button>
                 </div>
 
                 {/* ═══ TABLA PRINCIPAL ═══ */}
@@ -274,9 +204,22 @@ export default function LeaderboardPage() {
                         <div className="hidden sm:block">{t.leaderboard.action}</div>
                     </div>
 
+                    {loading && entries.length === 0 && (
+                        <div className="flex items-center justify-center gap-2 py-16 text-gray-600">
+                            <Loader2 size={16} className="animate-spin" />
+                            <span className="text-xs font-mono">Scanning Unichain Sepolia for agents...</span>
+                        </div>
+                    )}
+                    {!loading && entries.length === 0 && (
+                        <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+                            <Radio size={24} className="text-neural-cyan/30 animate-pulse" />
+                            <p className="text-xs text-gray-600 font-mono">No agent signals found in the last 50,000 blocks.</p>
+                            <p className="text-[10px] text-gray-700 font-mono">Run <code className="text-neural-cyan/60">pnpm fleet</code> to start the agent fleet.</p>
+                        </div>
+                    )}
                     <AnimatePresence>
                         {sortedFiltered.map((entry, i) => {
-                            const isMe = highlightUser && entry.isCurrentUser;
+                            const isMe = !!entry.isCurrentUser;
                             const isExpanded = expanded === entry.rank;
                             return (
                                 <motion.div
@@ -311,14 +254,14 @@ export default function LeaderboardPage() {
                                                         ? 'bg-neural-magenta/20 border-neural-magenta/40 text-neural-magenta'
                                                         : 'bg-white/10 border-white/10 text-white/60'
                                                 }`}>
-                                                {(entry.ens || entry.address).slice(0, 2).toUpperCase()}
+                                                {entry.address.slice(2, 4).toUpperCase()}
                                             </div>
 
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`font-mono text-sm truncate ${isMe ? 'text-neural-magenta font-bold' : 'text-white'
                                                         }`}>
-                                                        {entry.ens || `${entry.address.slice(0, 6)}...${entry.address.slice(-4)}`}
+                                                        {`${entry.address.slice(0, 6)}...${entry.address.slice(-4)}`}
                                                     </span>
                                                     {isMe && (
                                                         <span className="text-[9px] bg-neural-magenta/20 border border-neural-magenta/30 
@@ -496,7 +439,7 @@ export default function LeaderboardPage() {
                 </div>
 
                 {/* ═══ "YOUR POSITION" STICKY BOTTOM BAR ═══ */}
-                {address && !enrichedData.slice(0, 5).some(e =>
+                {address && !entries.slice(0, 5).some(e =>
                     e.address.toLowerCase() === address.toLowerCase()
                 ) && (
                         <motion.div
@@ -515,7 +458,7 @@ export default function LeaderboardPage() {
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className="w-7 h-7 rounded-full bg-neural-magenta/20 border border-neural-magenta/40 
                               flex items-center justify-center text-xs text-neural-magenta font-bold shrink-0">
-                                    #{enrichedData.find(e => e.isCurrentUser)?.rank || '—'}
+                                    #{entries.find(e => e.isCurrentUser)?.rank || '—'}
                                 </div>
                                 <span className="font-mono text-sm text-white truncate">
                                     {`${address.slice(0, 6)}...${address.slice(-4)}`}

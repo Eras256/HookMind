@@ -15,7 +15,10 @@ interface SignalParams {
     chainId: number;
 }
 export class AgentSigner {
-    constructor(private readonly account: Account) { }
+    private readonly privateKey: `0x${string}`;
+    constructor(private readonly account: Account, privateKey?: `0x${string}`) {
+        this.privateKey = privateKey ?? (process.env.AGENT_PRIVATE_KEY as `0x${string}`);
+    }
     async signSignal(params: SignalParams): Promise<`0x${string}`> {
         const msgHash = keccak256(encodePacked(
             ["bytes32", "uint24", "uint256", "bool", "string", "uint256", "uint256"],
@@ -29,10 +32,8 @@ export class AgentSigner {
                 BigInt(params.chainId),
             ]
         ));
-        // Follows the exact same hashing as the Solidity contract:
-        // keccak256(abi.encodePacked(...)).toEthSignedMessageHash().recover(sig)
         return signMessage({
-            privateKey: process.env.AGENT_PRIVATE_KEY as `0x${string}`,
+            privateKey: this.privateKey,
             message: { raw: msgHash },
         });
     }

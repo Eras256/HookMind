@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "pnpm --parallel --filter \"./apps/*\" dev",
     "dev:agent": "pnpm --filter \"./packages/agent\" dev",
+    "fleet:register": "pnpm --filter \"./packages/agent\" fleet:register",
+    "fleet": "pnpm --filter \"./packages/agent\" fleet",
     "dev:mcp": "pnpm --filter \"./packages/mcp\" dev",
     "build": "pnpm -r build",
     "test:contracts": "cd packages/contracts && forge test --gas-report -vvv",
